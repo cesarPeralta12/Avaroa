@@ -1,0 +1,813 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Events\DeliveryAccepted;
+use App\Events\TripCancelled;
+use App\Events\TripStatusChanged;
+use App\Events\TripCompleted;
+use App\Http\Controllers\Controller;
+use App\Models\ConversationSession;
+use App\Models\Driver;
+use App\Models\DriverRequest;
+use App\Models\ProofOfDelivery;
+use Carbon\Carbon;
+use App\Models\Trip;
+use App\Services\DriverAssignmentService;
+use App\Services\FileUploadService;
+use App\Services\MetaWhatsAppService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class DeliveryController extends Controller
+{
+    protected DriverAssignmentService $assignmentService;
+    protected FileUploadService $fileUploadService;
+    protected MetaWhatsAppService $metaWhatsApp;
+
+    public function __construct(
+        DriverAssignmentService $assignmentService,
+        FileUploadService $fileUploadService,
+        MetaWhatsAppService $metaWhatsApp
+    ) {
+        $this->assignmentService = $assignmentService;
+        $this->fileUploadService = $fileUploadService;
+        $this->metaWhatsApp = $metaWhatsApp;
+    }
+
+    /**
+     * Accept a delivery request - FIRST COME FIRST SERVED
+     */
+    public function accept(Request $request, int $tripId)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $driver = $user->driver;
+
+        if (!$driver) {
+            return response()->json(['error' => 'Driver profile not found'], 404);
+        }
+
+        try {
+            return DB::transaction(function () use ($tripId, $driver) {
+
+                $trip = Trip::lockForUpdate()->findOrFail($tripId);
+
+                if (!in_array($trip->status, ['searching', 'quoted', 'pending'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Delivery no longer available',
+                        'status' => $trip->status,
+                        'assigned_driver_id' => $trip->driver_id,
+                    ], 410);
+                }
+
+                $wallet = $driver->wallet ?? null;
+                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * 0.15);
+
+                if (!$wallet || $wallet->balance < $estimatedCommission) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Saldo insuficiente para comisión',
+                        'required' => $estimatedCommission,
+                        'current' => $wallet?->balance ?? 0,
+                    ], 403);
+                }
+
+                $previousStatus = $trip->status;
+
+                $trip->update([
+                    'driver_id' => $driver->id,
+                    'status' => 'accepted',
+                    'accepted_at' => now(),
+                ]);
+
+                $driver->update(['status' => 'busy']);
+                \App\Models\DriverAvailability::where('driver_id', $driver->id)
+                    ->update(['status' => 'busy']);
+
+                $otherDriverIds = DriverRequest::where('trip_id', $trip->id)
+                    ->where('driver_id', '!=', $driver->id)
+                    ->where('status', 'pending')
+                    ->pluck('driver_id')
+                    ->toArray();
+
+                DriverRequest::where('trip_id', $trip->id)
+                    ->where('driver_id', '!=', $driver->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'rejected']);
+
+                DriverRequest::where('trip_id', $trip->id)
+                    ->where('driver_id', $driver->id)
+                    ->update([
+                        'status' => 'accepted',
+                        'responded_at' => now()
+                    ]);
+
+                ConversationSession::where('trip_id', $trip->id)
+                    ->update(['state' => 'DRIVER_ASSIGNED']);
+
+                try {
+                    broadcast(new DeliveryAccepted($trip, $driver, $otherDriverIds));
+                    broadcast(new TripStatusChanged($trip, $previousStatus, [
+                        'accepted_by' => $driver->id,
+                        'accepted_at' => now()->toIso8601String(),
+                    ]));
+                } catch (\Exception $e) {
+                    Log::error('Broadcast failed: ' . $e->getMessage());
+                }
+
+                try {
+                    $this->notifyCustomerAssigned($trip, $driver);
+                } catch (\Exception $e) {
+                    Log::error('Notify customer failed: ' . $e->getMessage());
+                }
+
+                foreach ($otherDriverIds as $loserId) {
+                    try {
+                        $loserDriver = Driver::find($loserId);
+                        if ($loserDriver && $loserDriver->user) {
+                            $this->notifyDriverRejected($loserDriver, $trip);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Notify rejected failed: ' . $e->getMessage());
+                    }
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'trip' => $trip->fresh(),
+                    'estimated_commission' => $estimatedCommission,
+                    'message' => 'Delivery assigned successfully',
+                ]);
+            });
+
+        } catch (\Exception $e) {
+            Log::error('Accept delivery failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function available(Request $request)
+{
+    $driver = Auth::user()->driver;
+
+    if (!$driver) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Driver profile not found'
+        ], 404);
+    }
+
+    $requests = DriverRequest::where('driver_id', $driver->id)
+        ->where('status', 'pending')
+        ->whereNull('responded_at')
+        ->where('created_at', '>=', now()->subMinutes(5)) // IMPORTANT
+        ->whereHas('trip', function ($q) {
+            $q->whereIn('status', ['pending', 'searching', 'quoted', 'no_drivers']);
+        })
+        ->with(['trip.customer', 'trip.vehicle'])
+        ->latest()
+        ->get();
+
+    $now = Carbon::now();
+
+    $deliveries = $requests->map(function ($driverRequest) use ($now) {
+
+        $trip = $driverRequest->trip;
+        if (!$trip) return null;
+
+        $createdAt = $driverRequest->created_at;
+        $expiresAt = $createdAt->copy()->addMinutes(5);
+
+        return [
+            'id' => $trip->id,
+            'request_id' => $driverRequest->id,
+            'status' => $driverRequest->status,
+
+            'created_at' => $createdAt->toIso8601String(),
+            'expires_at' => $expiresAt->toIso8601String(),
+
+            // BEST FOR FLUTTER
+            'expires_in_seconds' => max(0, $expiresAt->diffInSeconds($now)),
+
+            'pickup_address' => $trip->origin_address ?? $trip->origin_url,
+            'pickup_lat' => (float) $trip->origin_lat,
+            'pickup_lng' => (float) $trip->origin_lng,
+            'delivery_address' => $trip->destination_address ?? $trip->destination_url,
+            'delivery_lat' => (float) $trip->destination_lat,
+            'delivery_lng' => (float) $trip->destination_lng,
+
+            'customer_name' => optional($trip->customer)->name ?? 'Customer',
+            'customer_phone' => optional($trip->customer)->whatsapp_number ?? '',
+            'vehicle_type' => optional($trip->vehicle)->type ?? 'pickup',
+
+            'weight' => $trip->weight,
+            'cargo_type' => $trip->cargo_type,
+            'estimated_duration' => $this->estimateDuration($trip->distance),
+            'estimated_fare' => (float) $trip->price,
+            'commission' => ceil(($trip->price ?? 0) * 0.15),
+            'customer_note' => $trip->notes,
+        ];
+    })->filter()->values();
+
+    return response()->json([
+        'success' => true,
+        'deliveries' => $deliveries,
+        'driver_status' => $driver->status,
+        'is_online' => (bool) $driver->is_online,
+        'server_time' => $now->toIso8601String(),
+    ]);
+}
+
+    private function estimateDuration(?float $distance): int
+    {
+        if (!$distance) return 30;
+        return (int) ceil(($distance * 2) + 10);
+    }
+
+    /**
+     * Update delivery status (intermediate statuses)
+     * Sends WhatsApp notifications to customer for each step
+     */
+    public function updateStatus(Request $request, int $tripId)
+    {
+        $request->validate([
+            'status' => 'required|in:driver_arrived,picked_up,in_progress,cancelled',
+            'location' => 'sometimes|array:lat,lng',
+            'reason' => 'sometimes|string|max:500',
+        ]);
+
+        $driver = Auth::user()->driver;
+
+        if (!$driver) {
+            return response()->json(['error' => 'Driver profile not found'], 404);
+        }
+
+        $trip = Trip::where('driver_id', $driver->id)->findOrFail($tripId);
+
+        $previousStatus = $trip->status;
+
+        // 🚫 Prevent cancelling completed trip
+        if ($request->status === 'cancelled' && $trip->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Completed trip cannot be cancelled'
+            ], 400);
+        }
+
+        $updateData = [];
+
+        switch ($request->status) {
+
+            case 'driver_arrived':
+                $updateData = [
+                    'status' => 'arrived',
+                    'driver_arrived_at' => now(),
+                ];
+                break;
+
+            case 'picked_up':
+                $updateData = [
+                    'status' => 'picked_up',
+                    'picked_up_at' => now(),
+                ];
+                break;
+
+            case 'in_progress':
+                $updateData = [
+                    'status' => 'in_progress',
+                    'started_at' => now(),
+                ];
+                break;
+
+            case 'cancelled':
+                $updateData = [
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $request->reason ?? 'Driver cancelled',
+                    'cancelled_by' => 'driver',
+                ];
+
+                // ✅ Free driver
+                $driver->update(['status' => 'available']);
+                \App\Models\DriverAvailability::where('driver_id', $driver->id)
+                    ->update(['status' => 'online']);
+
+                break;
+        }
+
+        $trip->update($updateData);
+
+        // ✅ Send WhatsApp notification to customer based on new status
+        $this->sendCustomerStatusNotification($trip, $request->status, $driver);
+
+        // ✅ Broadcast cancel separately
+        if ($request->status === 'cancelled') {
+            broadcast(new TripCancelled($trip, 'driver', $request->reason));
+        }
+
+        broadcast(new TripStatusChanged($trip, $previousStatus, []));
+
+        return response()->json([
+            'success' => true,
+            'trip' => $trip->fresh(),
+        ]);
+    }
+
+    /**
+     * Send WhatsApp notification to customer for each delivery step
+     * Spanish only as requested
+     */
+    protected function sendCustomerStatusNotification(Trip $trip, string $status, Driver $driver): void
+    {
+        if (!$trip->customer || !$trip->customer->whatsapp_number) {
+            Log::warning('Cannot send status notification - customer has no WhatsApp', [
+                'trip_id' => $trip->id,
+                'status' => $status
+            ]);
+            return;
+        }
+
+        $phone = $trip->customer->whatsapp_number;
+        $orderId = $trip->id;
+        $driverName = $driver->user->name ?? 'Mensajero';
+
+        $message = match ($status) {
+            // 1. Start Delivery - Driver heading to pickup (accepted → en_route via app, but this is driver_arrived in API)
+            // Actually 'driver_arrived' means courier arrived at pickup
+            'driver_arrived' => "📍 Actualización de entrega\n\n" .
+                "Pedido: #{$orderId}\n\n" .
+                "✅ El mensajero ha llegado al punto de recojo.\n" .
+                "Tu pedido está por ser retirado.\n\n" .
+                "👤 Mensajero: {$driverName}",
+
+            // 2. Confirm Pickup / Cargo Collected
+            'picked_up' => "📦 Actualización de entrega\n\n" .
+                "Pedido: #{$orderId}\n\n" .
+                "✅ El mensajero confirmó el recojo de tu pedido.\n" .
+                "Ahora se dirige al punto de entrega.\n\n" .
+                "👤 Mensajero: {$driverName}",
+
+            // 3. In Transit / On the Way
+            'in_progress' => "🛵 Actualización de entrega\n\n" .
+                "Pedido: #{$orderId}\n\n" .
+                "✅ Tu pedido está en camino.\n" .
+                "El mensajero se dirige a tu ubicación.\n\n" .
+                "👤 Mensajero: {$driverName}",
+
+            // 4. Cancelled by driver
+            'cancelled' => "❌ Entrega cancelada\n\n" .
+                "Pedido: #{$orderId}\n\n" .
+                "Lo sentimos, el mensajero ha cancelado la entrega.\n" .
+                "Estamos buscando otro mensajero para ti.\n\n" .
+                "Motivo: " . ($trip->cancellation_reason ?? 'No especificado'),
+
+            default => null,
+        };
+
+        if ($message) {
+            try {
+                $sent = $this->metaWhatsApp->sendMessage($phone, $message);
+                Log::info('Customer status notification sent', [
+                    'trip_id' => $trip->id,
+                    'status' => $status,
+                    'sent' => $sent,
+                    'phone' => $phone
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send customer status notification', [
+                    'trip_id' => $trip->id,
+                    'status' => $status,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+    }
+
+  /**
+ * COMPLETE DELIVERY WITH POD
+ */
+public function completeWithPod(Request $request, int $tripId)
+{
+    $request->validate([
+        'receiver_name' => 'required|string|max:255',
+        'photos' => 'required|array|min:1|max:5',
+        'photos.*' => 'required|file|image|max:5120',
+        'signature' => 'required|file|image|max:2048',
+        'notes' => 'nullable|string|max:500',
+        'location' => 'sometimes|array:lat,lng',
+    ]);
+
+    $driver = Auth::user()->driver;
+
+    if (!$driver) {
+        return response()->json(['error' => 'Driver profile not found'], 404);
+    }
+
+    $trip = Trip::where('driver_id', $driver->id)
+        ->where('id', $tripId)
+        ->first();
+
+    if (!$trip) {
+        return response()->json(['error' => 'Trip not found or not assigned to you'], 404);
+    }
+
+    if (!in_array($trip->status, ['accepted', 'picked_up', 'in_progress', 'driver_arrived'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Trip cannot be completed. Current status: ' . $trip->status
+        ], 422);
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // ─── 1. Handle POD uploads ───
+        $photoUrls = [];
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $path = $this->fileUploadService->upload(
+                    $photo,
+                    'deliveries/' . $trip->id . '/photos'
+                );
+                $photoUrls[] = $this->fileUploadService->getUrl($path);
+            }
+        }
+
+        $signatureUrl = null;
+
+        if ($request->hasFile('signature')) {
+            $sigPath = $this->fileUploadService->upload(
+                $request->file('signature'),
+                'deliveries/' . $trip->id . '/signatures'
+            );
+            $signatureUrl = $this->fileUploadService->getUrl($sigPath);
+        }
+
+        $pod = ProofOfDelivery::create([
+            'trip_id' => $trip->id,
+            'photo_url' => $photoUrls[0] ?? null,
+            'photo_urls' => $photoUrls,
+            'signature' => $signatureUrl,
+            'receiver_name' => $request->receiver_name,
+            'timestamp' => now(),
+            'geolocation_lat' => $request->input('location.lat'),
+            'geolocation_long' => $request->input('location.lng'),
+            'notes' => $request->notes,
+        ]);
+
+        $previousStatus = $trip->status;
+
+        // ─── 2. Complete the trip ───
+        $trip->update([
+            'status' => 'completed',
+            'pod_id' => $pod->id,
+            'completed_at' => now(),
+        ]);
+
+        // ─── 3. Commission Deduction (13%) ───
+        $tripPrice = (float) ($trip->price ?? 0);
+        $commissionAmount = (float) number_format($tripPrice * 0.13, 2, '.', '');
+
+        $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$wallet) {
+            throw new \Exception('Driver wallet not found');
+        }
+
+        if ($commissionAmount > 0) {
+            $newBalance = $wallet->balance - $commissionAmount;
+
+            // Update wallet balance
+            $wallet->update([
+                'balance' => max($newBalance, 0),
+            ]);
+
+            // Save transaction
+            \App\Models\WalletTransaction::create([
+                'wallet_id' => $wallet->id,
+                'type' => 'commission',
+                'amount' => $commissionAmount,
+                'direction' => 'DEBIT',
+                'reference_type' => 'trip',
+                'reference_id' => $trip->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // ─── 4. Block driver if balance depleted ───
+            if ($newBalance <= 0) {
+                $wallet->update([
+                    'is_blocked' => 1,
+                    'blocked_reason' => 'Insufficient balance',
+                    'blocked_at' => now(),
+                ]);
+
+                $driver->update([
+                    'status' => 'balance_depleted',
+                    'is_online' => 0,
+                ]);
+            }
+        }
+
+        // ─── 5. Release driver only if wallet is OK ───
+        $freshWallet = \App\Models\Wallet::where('driver_id', $driver->id)->first();
+
+        if ($freshWallet && $freshWallet->balance > 0 && !$freshWallet->is_blocked) {
+            $driver->update([
+                'status' => 'available',
+                'is_online' => 1,
+            ]);
+        }
+
+        DB::commit();
+
+        // ─── 6. Notifications & Broadcasting ───
+        $this->sendCustomerCompletionNotification($trip, $pod, $driver);
+
+        broadcast(new TripStatusChanged($trip, $previousStatus, [
+            'completed' => true,
+            'pod_id' => $pod->id,
+            'commission_deducted' => $commissionAmount,
+            'wallet_balance' => $freshWallet->balance ?? 0,
+        ]));
+
+        broadcast(new TripCompleted($trip, $driver->id));
+
+        $this->notifyCustomerDelivered($trip, $driver, $pod);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery completed successfully',
+            'trip' => $trip->fresh(),
+            'pod' => [
+                'id' => $pod->id,
+                'photos' => $photoUrls,
+                'signature' => $signatureUrl,
+                'receiver_name' => $request->receiver_name,
+                'timestamp' => $pod->timestamp?->toIso8601String(),
+            ],
+            'commission_deducted' => $commissionAmount,
+            'wallet_balance' => $freshWallet->balance ?? 0,
+            'driver_blocked' => ($freshWallet->balance ?? 0) <= 0,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('POD completion failed: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to complete delivery: ' . $e->getMessage()
+        ], 500);
+    }
+}
+    /**
+     * Send completion notification to customer (Spanish)
+     */
+    protected function sendCustomerCompletionNotification(Trip $trip, ProofOfDelivery $pod, Driver $driver): void
+    {
+        if (!$trip->customer || !$trip->customer->whatsapp_number) {
+            return;
+        }
+
+        $phone = $trip->customer->whatsapp_number;
+        $orderId = $trip->id;
+        $receiverName = $pod->receiver_name ?? 'No especificado';
+        $deliveryDateTime = now()->format('d/m/Y H:i');
+        $driverName = $driver->user->name ?? 'Mensajero';
+
+        $message = "✅ Entrega completada\n\n" .
+            "Pedido: #{$orderId}\n" .
+            "Recibido por: {$receiverName}\n" .
+            "Fecha y hora: {$deliveryDateTime}\n" .
+            "👤 Mensajero: {$driverName}\n\n" .
+            "Gracias por usar nuestro servicio. 🚚";
+
+        try {
+            $sent = $this->metaWhatsApp->sendMessage($phone, $message);
+            Log::info('Customer completion notification sent', [
+                'trip_id' => $trip->id,
+                'sent' => $sent
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send completion notification', [
+                'trip_id' => $trip->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get POD details
+     */
+    public function getPod(int $tripId)
+    {
+        $driver = Auth::user()->driver;
+
+        $trip = Trip::where('driver_id', $driver->id)
+            ->where('id', $tripId)
+            ->with('proofOfDelivery')
+            ->firstOrFail();
+
+        if (!$trip->proofOfDelivery) {
+            return response()->json(['error' => 'No POD found for this trip'], 404);
+        }
+
+        $pod = $trip->proofOfDelivery;
+
+        return response()->json([
+            'id' => $pod->id,
+            'photos' => $pod->photo_urls ?? [$pod->photo_url],
+            'signature' => $pod->signature,
+            'receiver_name' => $pod->receiver_name,
+            'timestamp' => $pod->timestamp?->toIso8601String(),
+            'location' => [
+                'lat' => $pod->geolocation_lat,
+                'lng' => $pod->geolocation_long,
+            ],
+            'notes' => $pod->notes,
+        ]);
+    }
+
+    /**
+     * Get active delivery
+     */
+    public function active()
+    {
+        $driver = Auth::user()->driver;
+
+        if (!$driver) {
+            return response()->json(['error' => 'Driver profile not found'], 404);
+        }
+
+        $trip = Trip::where('driver_id', $driver->id)
+            ->whereIn('status', ['accepted', 'driver_arrived', 'picked_up', 'in_progress'])
+            ->whereNotIn('status', ['cancelled', 'completed', 'no_drivers'])
+            ->whereNull('cancelled_at')
+            ->with(['customer', 'quote'])
+            ->first();
+
+        return response()->json([
+            'has_active_delivery' => (bool) $trip,
+            'trip' => $trip,
+        ]);
+    }
+
+    /**
+     * Get delivery history
+     */
+    public function history(Request $request)
+    {
+        $driver = Auth::user()->driver;
+
+        if (!$driver) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Driver profile not found'
+            ], 404);
+        }
+
+        $trips = Trip::where('driver_id', $driver->id)
+            ->whereIn('status', ['completed', 'cancelled'])
+            ->with(['customer'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $history = $trips->map(function ($trip) {
+            return [
+                'id' => $trip->id,
+                'driver_id' => $trip->driver_id,
+                'status' => $trip->status,
+                'origin_address' => $trip->origin_address,
+                'origin_url' => $trip->origin_url,
+                'destination_address' => $trip->destination_address,
+                'destination_url' => $trip->destination_url,
+                'origin_lat' => (float) $trip->origin_lat,
+                'origin_lng' => (float) $trip->origin_lng,
+                'destination_lat' => (float) $trip->destination_lat,
+                'destination_lng' => (float) $trip->destination_lng,
+                'price' => (float) $trip->price,
+                'estimated_fare' => (float) $trip->estimated_fare,
+                'fare_total' => (float) ($trip->price ?? $trip->estimated_fare ?? 0),
+                'customer' => $trip->customer ? [
+                    'name' => $trip->customer->name,
+                    'phone' => $trip->customer->whatsapp_number ?? $trip->customer->phone ?? '',
+                ] : null,
+                'customer_name' => $trip->customer?->name ?? 'Customer',
+                'customer_phone' => $trip->customer?->whatsapp_number ?? '',
+                'created_at' => $trip->created_at->toIso8601String(),
+                'completed_at' => $trip->completed_at?->toIso8601String(),
+                'distance' => (float) $trip->distance,
+                'commission' => ceil(($trip->price ?? 0) * 0.15),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $history,
+        ]);
+    }
+
+    /**
+     * Reject delivery request
+     */
+    public function reject(Request $request, int $tripId)
+    {
+        $driver = Auth::user()->driver;
+
+        DriverRequest::where('trip_id', $tripId)
+            ->where('driver_id', $driver->id)
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'rejected',
+                'responded_at' => now(),
+                'notes' => $request->reason,
+            ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    protected function notifyDriverRejected(Driver $driver, Trip $trip): void
+    {
+        $message = "❌ La entrega #{$trip->id} fue asignada a otro mensajero.\n" .
+            "Esperando nuevas oportunidades...";
+
+        $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
+    }
+
+    protected function notifyCustomerAssigned(Trip $trip, Driver $driver): void
+    {
+        $whatsappService = app(\App\Services\MetaWhatsAppService::class);
+        $language = ConversationSession::where('trip_id', $trip->id)->value('language') ?? 'es';
+
+        $driverName = $driver->user->name ?? 'Mensajero';
+        $priceFormatted = 'Bs ' . number_format($trip->price ?? 0, 2);
+
+        $templateSent = $whatsappService->sendTemplateMessage(
+            $trip->customer->whatsapp_number,
+            'courier_assigned_sp',
+            [
+                $driverName,
+                $priceFormatted,
+            ]
+        );
+
+        if (!$templateSent) {
+            $vehicle = \App\Models\Vehicle::where('driver_id', $driver->id)->first();
+
+            $message = "✅ *Mensajero asignado*\n\n" .
+                "👤 *Nombre:* " . $driverName . "\n";
+
+            if ($vehicle) {
+                $message .= "🚗 *Vehículo:* " . ($vehicle->type ?? 'Vehículo') . "\n" .
+                           "🔢 *Placa:* " . ($vehicle->plate_number ?? 'N/A') . "\n";
+            }
+
+            $message .= "📱 *Contacto:* " . ($driver->user->whatsapp_number ?? 'N/A') . "\n" .
+                "💰 *Precio:* " . $priceFormatted . "\n\n" .
+                "¡Tu mensajero está en camino! 🚚\n\n" .
+                "Envía *ESTADO* para actualizaciones.";
+
+            $whatsappService->sendMessage($trip->customer->whatsapp_number, $message);
+        }
+    }
+
+    protected function notifyCustomerDelivered(Trip $trip, Driver $driver, ProofOfDelivery $pod): void
+    {
+        try {
+            $whatsappService = app(MetaWhatsAppService::class);
+            $language = ConversationSession::where('trip_id', $trip->id)->value('language') ?? 'es';
+
+            $message = $language === 'es'
+                ? "✅ ¡Entrega completada!\\n\\n" .
+                  "Pedido: #{$trip->id}\\n" .
+                  "Recibido por: {$pod->receiver_name}\\n" .
+                  "Fecha: " . now()->format('d/m/Y H:i') . "\\n\\n" .
+                  "Gracias por usar nuestro servicio!"
+                : "✅ Delivery completed!\\n\\n" .
+                  "Order: #{$trip->id}\\n" .
+                  "Received by: {$pod->receiver_name}\\n" .
+                  "Date: " . now()->format('Y-m-d H:i') . "\\n\\n" .
+                  "Thank you for using our service!";
+
+            $whatsappService->sendMessage($trip->customer->whatsapp_number, $message);
+        } catch (\Exception $e) {
+            Log::error('Failed to send delivery notification: ' . $e->getMessage());
+        }
+    }
+}
