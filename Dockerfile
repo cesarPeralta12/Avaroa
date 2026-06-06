@@ -38,12 +38,15 @@ WORKDIR /var/www/html
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Copy and install Node dependencies + build assets
+# Install Node dependencies (cached layer — only needs package files)
 COPY package.json package-lock.json ./
-RUN npm ci && npm run build
+RUN npm ci
 
 # Copy full application
 COPY . .
+
+# Build assets (must happen AFTER full COPY so Vite can find source files)
+RUN npm run build
 
 # Run composer scripts after full copy
 RUN composer dump-autoload --optimize
