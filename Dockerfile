@@ -58,9 +58,16 @@ RUN npm run build
 # Run composer scripts after full copy
 RUN composer dump-autoload --optimize
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Set permissions for storage, cache, AND uploads directory
+RUN mkdir -p /var/www/html/public/uploads \
+    && chown -R www-data:www-data \
+        /var/www/html/storage \
+        /var/www/html/bootstrap/cache \
+        /var/www/html/public/uploads \
+    && chmod -R 775 \
+        /var/www/html/storage \
+        /var/www/html/bootstrap/cache \
+        /var/www/html/public/uploads
 
 # Create supervisor log directory
 RUN mkdir -p /var/log/supervisor
