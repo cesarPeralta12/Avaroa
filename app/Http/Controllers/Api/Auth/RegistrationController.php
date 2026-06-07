@@ -236,8 +236,13 @@ class RegistrationController extends Controller
             $insurance = $this->uploadDocument($request->file('insurance_certificate'), $driver->id, 'insurance_certificate', 'documentos/seguro');
             $documentIds[] = $insurance->id;
 
-            if ($driver->vehicle) {
-                $driver->vehicle->update(['documents' => $documentIds]);
+            // Non-critical: link document IDs to vehicle (column may not exist yet)
+            try {
+                if ($driver->vehicle) {
+                    $driver->vehicle->update(['documents' => $documentIds]);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Could not update vehicle.documents: ' . $e->getMessage());
             }
 
             $driver->update(['status' => 'offline', 'approval_status' => 'under_review']);
