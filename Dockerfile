@@ -3,7 +3,7 @@ FROM php:8.2-apache
 # Enable Apache modules
 RUN a2enmod rewrite headers
 
-# Install system dependencies + supervisor
+# Install system dependencies (sin nodejs/npm de Debian)
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -13,9 +13,15 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     supervisor \
+    ca-certificates \
+    gnupg \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala Node.js 20 desde NodeSource (versión correcta para Vite)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -66,10 +72,12 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
     /etc/apache2/apache2.conf \
     /etc/apache2/conf-available/*.conf
 
-# Copy supervisor config
+# Copy supervisor config and entrypoint
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80
 
-# Start both Apache and Reverb via supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# On every container start: migrate + cache + storage:link → then Apache + Reverb
+CMD ["/usr/local/bin/entrypoint.sh"]
