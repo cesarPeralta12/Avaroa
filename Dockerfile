@@ -1,7 +1,7 @@
 FROM php:8.2-apache
 
-# Enable Apache modules
-RUN a2enmod rewrite headers
+# Enable Apache modules (proxy + websocket tunnel for Reverb)
+RUN a2enmod rewrite headers proxy proxy_http proxy_wstunnel
 
 # Install system dependencies (sin nodejs/npm de Debian)
 RUN apt-get update && apt-get install -y \
@@ -72,9 +72,11 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
     /etc/apache2/apache2.conf \
     /etc/apache2/conf-available/*.conf
 
-# Copy supervisor config and entrypoint
+# Copy supervisor config, entrypoint, and Apache WebSocket proxy config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/apache-reverb-proxy.conf /etc/apache2/conf-available/reverb-proxy.conf
+RUN a2enconf reverb-proxy
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80
