@@ -33,20 +33,20 @@ class RegistrationController extends Controller
         ], [
             'full_name.required' => 'El nombre completo es requerido',
             'full_name.max' => 'El nombre no debe exceder 255 caracteres',
-            'email.required' => 'El correo electr\u00f3nico es requerido',
-            'email.email' => 'El correo electr\u00f3nico no es v\u00e1lido',
-            'email.unique' => 'Este correo ya est\u00e1 registrado. Use otro correo.',
-            'phone.required' => 'El tel\u00e9fono es requerido',
-            'phone.min' => 'El tel\u00e9fono debe tener al menos 8 d\u00edgitos',
-            'phone.max' => 'El tel\u00e9fono no debe exceder 20 d\u00edgitos',
-            'password.required' => 'La contrase\u00f1a es requerida',
-            'password.min' => 'La contrase\u00f1a debe tener al menos 8 caracteres',
+            'email.required' => 'El correo electrónico es requerido',
+            'email.email' => 'El correo electrónico no es válido',
+            'email.unique' => 'Este correo ya está registrado. Use otro correo.',
+            'phone.required' => 'El teléfono es requerido',
+            'phone.min' => 'El teléfono debe tener al menos 8 dígitos',
+            'phone.max' => 'El teléfono no debe exceder 20 dígitos',
+            'password.required' => 'La contraseña es requerida',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validaci\u00f3n',
+                'message' => 'Error de validación',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -79,7 +79,7 @@ class RegistrationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Informaci\u00f3n personal guardada',
+                'message' => 'Información personal guardada',
                 'data' => [
                     'user_id' => $user->id,
                     'driver_id' => $driver->id,
@@ -91,7 +91,7 @@ class RegistrationController extends Controller
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Error al guardar la informaci\u00f3n',
+                'message' => 'Error al guardar la información',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -117,25 +117,25 @@ class RegistrationController extends Controller
         ], [
             'driver_id.required' => 'ID de conductor requerido',
             'driver_id.exists' => 'Conductor no encontrado',
-            'vehicle_type.required' => 'El tipo de veh\u00edculo es requerido',
-            'vehicle_type.in' => 'Tipo de veh\u00edculo no v\u00e1lido. Opciones: moto, automovil, minivan, camioneta, torito, bicicleta',
+            'vehicle_type.required' => 'El tipo de vehículo es requerido',
+            'vehicle_type.in' => 'Tipo de vehículo no válido. Opciones: moto, automovil, minivan, camioneta, torito, bicicleta',
             'license_plate.required' => 'La placa es requerida',
-            'license_plate.unique' => 'Esta placa ya est\u00e1 registrada. Use otra placa.',
+            'license_plate.unique' => 'Esta placa ya está registrada. Use otra placa.',
             'license_plate.max' => 'La placa no debe exceder 20 caracteres',
             'vehicle_model.required' => 'El modelo es requerido',
             'vehicle_model.max' => 'El modelo no debe exceder 255 caracteres',
-            'vehicle_year.required' => 'El a\u00f1o es requerido',
-            'vehicle_year.integer' => 'El a\u00f1o debe ser un n\u00famero',
-            'vehicle_year.min' => 'El a\u00f1o debe ser 1990 o posterior',
-            'vehicle_year.max' => 'El a\u00f1o no puede ser mayor a ' . (date('Y') + 1),
-            'vehicle_color.required' => 'El color del veh\u00edculo es requerido',
+            'vehicle_year.required' => 'El año es requerido',
+            'vehicle_year.integer' => 'El año debe ser un número',
+            'vehicle_year.min' => 'El año debe ser 1990 o posterior',
+            'vehicle_year.max' => 'El año no puede ser mayor a ' . (date('Y') + 1),
+            'vehicle_color.required' => 'El color del vehículo es requerido',
             'vehicle_color.max' => 'El color no debe exceder 50 caracteres',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validaci\u00f3n',
+                'message' => 'Error de validación',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -160,7 +160,7 @@ class RegistrationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Informaci\u00f3n del veh\u00edculo guardada',
+                'message' => 'Información del vehículo guardada',
                 'data' => [
                     'vehicle_id' => $vehicle->id,
                     'next_step' => 'documents',
@@ -170,7 +170,7 @@ class RegistrationController extends Controller
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Error al guardar la informaci\u00f3n del veh\u00edculo',
+                'message' => 'Error al guardar la información del vehículo',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -204,7 +204,7 @@ class RegistrationController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validaci\u00f3n',
+                'message' => 'Error de validación',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -254,7 +254,7 @@ class RegistrationController extends Controller
                     'driver_id' => $driver->id,
                     'status' => 'under_review',
                     'auth_token' => $authToken,
-                    'message' => 'Su documentaci\u00f3n est\u00e1 siendo revisada. Le notificaremos en 24-48 horas.',
+                    'message' => 'Su documentación está siendo revisada. Le notificaremos en 24-48 horas.',
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -379,10 +379,10 @@ class RegistrationController extends Controller
     {
         $messages = [
             'pending' => 'Pendiente de completar registro',
-            'under_review' => 'Documentos en revisi\u00f3n. Espere 24-48 horas.',
+            'under_review' => 'Documentos en revisión. Espere 24-48 horas.',
             'available' => 'Cuenta activa. Puede comenzar a recibir pedidos.',
             'busy' => 'Cuenta activa. Actualmente en entrega.',
-            'offline' => 'Cuenta activa. Est\u00e1 desconectado.',
+            'offline' => 'Cuenta activa. Está desconectado.',
             'suspended' => 'Cuenta suspendida. Contacte soporte.',
         ];
         return $messages[$status] ?? 'Estado desconocido';
