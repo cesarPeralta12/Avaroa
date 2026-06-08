@@ -4,8 +4,10 @@
 @if ($isSuperAdmin)
     <div class="sidebar-wrapper">
         <div>
-            <div class="logo-wrapper"><a href="{{ route('dashboard') }}"><img class=" for-light" src="<?php echo '/' . $general_setting['app_logo'] ?? ''; ?>"
-                        width="200px" height="200px" style="margin-top: -58px;" alt=""></a>
+            <div class="logo-wrapper"><a href="{{ route('dashboard') }}">
+                    <img class="for-light"  src="/{{ $general_setting['app_logo'] ?? '' }}" alt="{{ $general_setting['app_name'] ?? 'Logo' }}">
+                    <img class="for-dark"   src="/{{ $general_setting['app_logo_dark'] ?? $general_setting['app_logo'] ?? '' }}" alt="{{ $general_setting['app_name'] ?? 'Logo' }}">
+                </a>
                 <div class="back-btn"><i data-feather="grid"></i></div>
                 <div class="toggle-sidebar icon-box-sidebar"><i class="status_toggle middle sidebar-toggle"
                         data-feather="grid"> </i></div>

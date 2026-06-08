@@ -31,3 +31,6 @@
 
 <!-- Responsive css-->
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/responsive.css') }}">
+
+<!-- Avaroa admin overrides (dark mode fixes, global polish) -->
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/avaroa-admin.css') }}">

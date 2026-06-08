@@ -37,6 +37,7 @@
             text-align: center;
             position: relative;
         }
+        /* dark override moved to avaroa-admin.css */
         .driver-avatar {
             width: 120px;
             height: 120px;
@@ -73,6 +74,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
+        /* dark overrides in avaroa-admin.css */
         .driver-status-badge {
             display: inline-flex;
             align-items: center;
@@ -91,6 +93,7 @@
             background: #fed7d7;
             color: #742a2a;
         }
+        /* dark overrides in avaroa-admin.css */
         .status-dot {
             width: 8px;
             height: 8px;
@@ -140,18 +143,10 @@
             justify-content: center;
             font-size: 1.25rem;
         }
-        .info-card-icon.contact {
-            background: #ebf8ff;
-            color: #3182ce;
-        }
-        .info-card-icon.vehicle {
-            background: #f0fff4;
-            color: #38a169;
-        }
-        .info-card-icon.stats {
-            background: #faf5ff;
-            color: #805ad5;
-        }
+        .info-card-icon.contact { background: #ebf8ff; color: #3182ce; }
+        .info-card-icon.vehicle { background: #f0fff4; color: #38a169; }
+        .info-card-icon.stats   { background: #faf5ff; color: #805ad5; }
+        /* dark overrides for all .info-card-icon.* in avaroa-admin.css */
         .info-card-title {
             font-weight: 700;
             color: #2d3748;

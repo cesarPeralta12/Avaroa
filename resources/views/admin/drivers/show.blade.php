@@ -3,6 +3,7 @@
 @section('main_content')
 
 <style>
+    /* Banner always dark-gradient — looks great in both modes */
     .driver-profile-banner {
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
         border-radius: 16px 16px 0 0;
@@ -27,23 +28,28 @@
         margin-top: -36px;
         padding: 0 20px 20px;
     }
+    /* Light mode defaults */
     .stat-pill {
         display: inline-flex; align-items: center; gap: 6px;
         background: #f8f9fc; border-radius: 30px;
         padding: 6px 14px; font-size: 0.8rem; font-weight: 600;
         border: 1px solid #e9ecef;
+        color: #444;
     }
     .doc-card { transition: transform .15s, box-shadow .15s; }
-    .doc-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .doc-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
     .doc-preview-wrap {
         height: 180px; overflow: hidden; background: #f8f9fc;
         border-radius: 8px; display: flex; align-items: center; justify-content: center;
         cursor: pointer;
     }
     .doc-preview-wrap img { max-height: 100%; max-width: 100%; object-fit: contain; }
-    .info-row { display: flex; justify-content: space-between; align-items: center;
-        padding: 10px 0; border-bottom: 1px solid #f0f2f5; font-size: .9rem; }
+    .info-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 0; border-bottom: 1px solid #f0f2f5; font-size: .9rem;
+    }
     .info-row:last-child { border-bottom: none; }
+    /* Status badges — light mode */
     .badge-status-active   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
     .badge-status-suspended{ background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     .badge-status-pending  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
@@ -208,14 +214,10 @@
                                         'rejected' => '#ef4444',
                                         default    => '#f59e0b',
                                     };
-                                    $bgColor = match($document->status) {
-                                        'verified' => '#f0fdf4',
-                                        'rejected' => '#fef2f2',
-                                        default    => '#fffbeb',
-                                    };
+                                    // No inline background — handled by avaroa-admin.css dark mode + light fallback
                                 @endphp
                                 <div class="col-md-6">
-                                    <div class="doc-card card h-100" style="border:1.5px solid {{ $borderColor }}; border-radius:12px; background:{{ $bgColor }};">
+                                    <div class="doc-card card h-100" style="border:1.5px solid {{ $borderColor }}; border-radius:12px;">
                                         <div class="card-header d-flex justify-content-between align-items-center border-0 pb-0"
                                              style="background:transparent;">
                                             <span class="fw-bold text-dark small">
