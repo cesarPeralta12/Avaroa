@@ -120,6 +120,7 @@
     /* Form Body */
     .profile-body {
         padding: 20px 40px 40px;
+        background: var(--av-card-bg, #ffffff);
     }
 
     /* Form Groups */

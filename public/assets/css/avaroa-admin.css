@@ -12,6 +12,45 @@
  */
 
 /* ============================================================
+   0. CSS DESIGN TOKENS — light & dark
+   ============================================================ */
+:root {
+    --av-orange:        #FF8C00;
+    --av-orange-hot:    #E67E00;
+    --av-orange-light:  rgba(255,140,0,0.12);
+    --av-orange-glow:   rgba(255,140,0,0.30);
+
+    /* Backgrounds */
+    --av-body-bg:       #F0F2F5;
+    --av-card-bg:       #ffffff;
+    --av-surface:       #f8fafc;
+    --av-header-bg:     #ffffff;
+
+    /* Borders & shadows */
+    --av-border:        rgba(0,0,0,0.07);
+    --av-shadow:        0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+    --av-shadow-md:     0 4px 16px rgba(0,0,0,.08), 0 8px 30px rgba(0,0,0,.05);
+
+    /* Text */
+    --av-text:          #1A1D23;
+    --av-text-muted:    #6B7280;
+
+    /* Sidebar (always dark) */
+    --av-sidebar-bg:      #0A0F1C;
+    --av-sidebar-surface: #111827;
+}
+
+body.dark-only {
+    --av-body-bg:    #10101c;
+    --av-card-bg:    #171829;
+    --av-surface:    #1d1e31;
+    --av-header-bg:  #171829;
+    --av-border:     #323347;
+    --av-text:       rgba(255,255,255,0.80);
+    --av-text-muted: rgba(255,255,255,0.40);
+}
+
+/* ============================================================
    1. LOGO — compact-wrapper dark toggle
       (the built-in CSS only handles .horizontal-wrapper)
    ============================================================ */
