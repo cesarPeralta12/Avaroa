@@ -15,12 +15,12 @@
     }
 
     .dashboard-card {
-        background: #ffffff;
+        background: var(--av-card-bg, #ffffff);
         border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        box-shadow: var(--av-shadow, 0 4px 15px rgba(0,0,0,0.06));
         transition: all 0.3s ease;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--av-border, #e2e8f0);
         position: relative;
         overflow: hidden;
     }
@@ -62,18 +62,18 @@
     .stat-icon.warning { background: linear-gradient(135deg, #f093fb20 0%, #f5576c20 100%); color: #f5576c; }
     .stat-icon.danger { background: linear-gradient(135deg, #fa709a20 0%, #fee14020 100%); color: #fa709a; }
     .stat-icon.info { background: linear-gradient(135deg, #4facfe20 0%, #00f2fe20 100%); color: #4facfe; }
-    .stat-icon.dark { background: linear-gradient(135deg, #1e293b20 0%, #0f172a20 100%); color: #1e293b; }
+    .stat-icon.dark { background: rgba(255,255,255,0.08); color: var(--av-text-muted, #94a3b8); }
 
     .stat-value {
         font-size: 28px;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--av-text, #0f172a);
         margin-bottom: 2px;
         line-height: 1.2;
     }
 
     .stat-label {
-        color: #64748b;
+        color: var(--av-text-muted, #64748b);
         font-size: 13px;
         font-weight: 500;
     }
