@@ -290,6 +290,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session']], function 
         // Verification APIs
         Route::post('/drivers/{id}/verify', [DriverController::class, 'verifyDriver'])->name('drivers.verify');
         Route::post('/drivers/{id}/reject', [DriverController::class, 'rejectDriver'])->name('drivers.reject');
+        Route::post('/drivers/{id}/suspend', [DriverController::class, 'suspendDriver'])->name('drivers.suspend');
 
         // Document Management
         Route::post('/drivers/{driverId}/documents', [DriverController::class, 'uploadDocument'])->name('drivers.documents.upload');

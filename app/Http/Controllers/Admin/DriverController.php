@@ -327,6 +327,43 @@ class DriverController extends Controller
     }
 
     /**
+     * Suspend or reactivate a driver account (toggle)
+     */
+    public function suspendDriver(Request $request, $id)
+    {
+        if (!Session::has('LoggedIn')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        try {
+            $driver = Driver::with('user')->findOrFail($id);
+
+            $currentlyActive = (bool) $driver->user->is_active;
+            $willBeSuspended = $currentlyActive; // if active → suspend; if suspended → reactivate
+
+            $driver->user->update(['is_active' => !$willBeSuspended]);
+
+            if ($willBeSuspended) {
+                $driver->update(['status' => 'offline']);
+            }
+
+            return response()->json([
+                'success'    => true,
+                'suspended'  => $willBeSuspended,
+                'message'    => $willBeSuspended
+                    ? 'Conductor suspendido. Ya no puede iniciar sesión.'
+                    : 'Conductor reactivado correctamente.',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Reject driver verification
      */
     public function rejectDriver(Request $request, $id)
