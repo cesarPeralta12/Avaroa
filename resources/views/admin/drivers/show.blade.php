@@ -27,32 +27,48 @@
     .driver-profile-body {
         margin-top: -36px;
         padding: 0 20px 20px;
+        position: relative;
+        z-index: 2;
     }
-    /* Light mode defaults */
+    /* Stat pill */
     .stat-pill {
         display: inline-flex; align-items: center; gap: 6px;
-        background: #f8f9fc; border-radius: 30px;
+        background: var(--av-surface, #f8f9fc); border-radius: 30px;
         padding: 6px 14px; font-size: 0.8rem; font-weight: 600;
-        border: 1px solid #e9ecef;
-        color: #444;
+        border: 1px solid var(--av-border, #e9ecef);
+        color: var(--av-text, #444);
     }
+    /* Doc card */
     .doc-card { transition: transform .15s, box-shadow .15s; }
     .doc-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
     .doc-preview-wrap {
-        height: 180px; overflow: hidden; background: #f8f9fc;
+        height: 180px; overflow: hidden;
+        background: var(--av-surface, #f8f9fc);
         border-radius: 8px; display: flex; align-items: center; justify-content: center;
         cursor: pointer;
     }
     .doc-preview-wrap img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    /* Info rows */
     .info-row {
         display: flex; justify-content: space-between; align-items: center;
-        padding: 10px 0; border-bottom: 1px solid #f0f2f5; font-size: .9rem;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--av-border, #f0f2f5);
+        font-size: .9rem;
     }
     .info-row:last-child { border-bottom: none; }
-    /* Status badges — light mode */
+    /* Card headers — transparent so they inherit card bg */
+    .doc-card .card-header,
+    .card-header.bg-white {
+        background: transparent !important;
+    }
+    /* Status badges */
     .badge-status-active   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
     .badge-status-suspended{ background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     .badge-status-pending  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    /* Action card — always visible above other cards */
+    .driver-actions-card {
+        position: relative; z-index: 3;
+    }
 </style>
 
 <div class="page-content">
@@ -145,7 +161,7 @@
                 {{-- Vehicle Card --}}
                 @if($driver->vehicle)
                 <div class="card shadow-sm mb-4" style="border-radius:12px; border:none;">
-                    <div class="card-header bg-white border-0 pt-4 pb-2">
+                    <div class="card-header border-0 pt-4 pb-2" style="background:transparent;">
                         <h6 class="fw-bold mb-0"><i class="fas fa-car me-2 text-primary"></i>Vehículo Principal</h6>
                     </div>
                     <div class="card-body pt-0">
@@ -161,7 +177,7 @@
                 @endif
 
                 {{-- Action Buttons --}}
-                <div class="card shadow-sm p-3" style="border-radius:12px; border:none;">
+                <div class="card shadow-sm p-3 driver-actions-card" style="border-radius:12px; border:none;">
                     <div class="d-grid gap-2">
                         @if(!$driver->is_verified)
                             <button class="btn btn-success btn-verify-driver" data-driver-id="{{ $driver->id }}">
@@ -193,7 +209,7 @@
             {{-- Right Column: Documents --}}
             <div class="col-xl-8">
                 <div class="card shadow-sm" style="border-radius:16px; border:none;">
-                    <div class="card-header bg-white border-0 pt-4 d-flex justify-content-between align-items-center">
+                    <div class="card-header border-0 pt-4 d-flex justify-content-between align-items-center" style="background:transparent;">
                         <h5 class="fw-bold mb-0">
                             <i class="fas fa-folder-open me-2 text-primary"></i>Verificación De Documentos
                         </h5>
@@ -220,7 +236,7 @@
                                     <div class="doc-card card h-100" style="border:1.5px solid {{ $borderColor }}; border-radius:12px;">
                                         <div class="card-header d-flex justify-content-between align-items-center border-0 pb-0"
                                              style="background:transparent;">
-                                            <span class="fw-bold text-dark small">
+                                            <span class="fw-bold small" style="color:var(--av-text,#1a1d23)">
                                                 {{ $documentTypes[$document->type] ?? ucfirst(str_replace('_', ' ', $document->type)) }}
                                             </span>
                                             @switch($document->status)

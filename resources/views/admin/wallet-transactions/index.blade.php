@@ -53,6 +53,7 @@
         width: 35px;
         height: 35px;
         border-radius: 50%;
+        object-fit: cover;
     }
     .driver-avatar-placeholder-sm {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

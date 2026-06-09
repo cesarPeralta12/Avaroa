@@ -55,7 +55,8 @@
                                 <div class="position-relative">
                                     @if($driver->user?->profile_photo)
                                         <img src="{{ \App\Services\FileUploadService::getUrl($driver->user->profile_photo) }}"
-                                             class="rounded-circle" width="64" height="64" alt="">
+                                             class="rounded-circle" width="64" height="64" alt=""
+                                             style="object-fit: cover; width: 64px; height: 64px;">
                                     @else
                                         <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary"
                                              style="width: 64px; height: 64px;">

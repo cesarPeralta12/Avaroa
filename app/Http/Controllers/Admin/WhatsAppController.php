@@ -56,7 +56,7 @@ class WhatsAppController extends Controller
     {
         // Using session check as per your existing logic
         if (!session()->has('LoggedIn')) {
-            return redirect('login')->with('fail', 'Please login first.');
+            return redirect('/admin/login')->with('fail', 'Please login first.');
         }
 
         $phone = $request->phone ?? '918817016704'; // Your testing number

@@ -173,7 +173,8 @@
                                             <div class="flex-shrink-0">
                                                 @if($driver->user?->profile_photo)
                                                     <img src="{{ \App\Services\FileUploadService::getUrl($driver->user->profile_photo) }}"
-                                                         class="rounded-circle" width="48" height="48" alt="">
+                                                         class="rounded-circle" width="48" height="48" alt=""
+                                                         style="object-fit: cover; width: 48px; height: 48px;">
                                                 @else
                                                     <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
                                                          style="width: 48px; height: 48px;">

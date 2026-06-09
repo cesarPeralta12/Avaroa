@@ -488,14 +488,14 @@ class UserController extends Controller
     private function authenticatedUser()
     {
         if (!Session::has('LoggedIn')) {
-            return redirect('/login')->with('fail', 'You must be logged in first.');
+            return redirect('/Userlogin')->with('fail', 'You must be logged in first.');
         }
 
         $user_session = User::where('id', Session::get('LoggedIn'))->first();
 
         if (!$user_session) {
             Session::forget('LoggedIn');
-            return redirect('/login')->with('fail', 'Session expired. Please login again.');
+            return redirect('/Userlogin')->with('fail', 'Session expired. Please login again.');
         }
 
         return $user_session;
@@ -505,7 +505,7 @@ class UserController extends Controller
     public function overview()
     {
         if (!Session::has('LoggedIn')) {
-            return redirect('login')->with('fail', 'Please login first.');
+            return redirect('/Userlogin')->with('fail', 'Please login first.');
         }
 
         $user_session = User::find(Session::get('LoggedIn'));

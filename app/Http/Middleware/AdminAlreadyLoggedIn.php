@@ -16,7 +16,7 @@ class AdminAlreadyLoggedIn
     public function handle(Request $request, Closure $next): Response
     {
         if (Session()->has('LoggedIn') && (url('admin/login') == $request->url() || url('/') == $request->url() || url('register') == $request->url() )) {
-            return back();
+            return redirect('/admin/dashboard');
         }
         return $next($request);
     }

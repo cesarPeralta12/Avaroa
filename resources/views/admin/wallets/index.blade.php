@@ -127,7 +127,8 @@
                                         <div class="me-3">
                                             @if($wallet->driver?->user?->profile_photo)
                                                 <img src="{{ asset($wallet->driver->user->profile_photo) }}"
-                                                     class="rounded-circle" width="50" height="50">
+                                                     class="rounded-circle" width="50" height="50"
+                                                     style="object-fit: cover; width: 50px; height: 50px;">
                                             @else
                                                 <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
                                                      style="width: 50px; height: 50px;">
