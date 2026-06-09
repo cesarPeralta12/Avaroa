@@ -710,7 +710,7 @@ body:not(.dark) .ftab-all { border-color: #94a3b8; color: #64748b; }
 @endforeach
 @endsection
 
-@section('js')
+@push('scripts')
 <script>
 // ══════════════════════════════════════════════════════════
 //  Data + state
@@ -975,4 +975,4 @@ function copyTrackUrl() {
 // ══════════════════════════════════════════════════════════
 applyFilters();
 </script>
-@endsection
+@endpush

@@ -356,44 +356,62 @@
 </form>
 @endsection
 
-@section('script')
+@push('scripts')
 <script>
-// Scroll al final del chat
-const chatEl = document.getElementById('chatMessages');
-if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+document.addEventListener('DOMContentLoaded', function() {
 
-// Auto-resize textarea
-document.querySelector('textarea[name="message"]')?.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.closest('form').submit();
+    // Scroll al final del chat
+    const chatEl = document.getElementById('chatMessages');
+    if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+    // Enter para enviar (Shift+Enter = nueva línea)
+    const textarea = document.querySelector('textarea[name="message"]');
+    if (textarea) {
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.closest('form').submit();
+            }
+        });
     }
 });
 
 // Toggle escalate via AJAX
 function toggleEscalate(id) {
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
     fetch(`/admin/whatsapp/${id}/toggle-escalate`, {
         method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+        headers: { 'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/json' }
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
             const esc = data.escalated;
-            const label = esc ? '🔔 Quitar alerta' : '🔔 Alertar';
-            ['escalateBtn', 'escalateBtnSide'].forEach(id => {
-                const btn = document.getElementById(id);
+            ['escalateBtn', 'escalateBtnSide'].forEach(btnId => {
+                const btn = document.getElementById(btnId);
                 if (btn) btn.innerHTML = `<i class="fas fa-${esc ? 'bell-slash' : 'bell'} me-1"></i>${esc ? 'Quitar alerta' : 'Marcar: necesita atención'}`;
             });
         }
-    });
+    })
+    .catch(err => console.error('Toggle escalate error:', err));
 }
 
 function deleteConv(id) {
-    if (!confirm('¿Eliminar esta conversación y todos sus mensajes?')) return;
-    const form = document.getElementById('deleteForm');
-    form.action = `/admin/whatsapp/${id}`;
-    form.submit();
+    Swal.fire({
+        title: '¿Eliminar conversación?',
+        text: 'Se eliminarán todos los mensajes. No se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        const form = document.getElementById('deleteForm');
+        form.action = `/admin/whatsapp/${id}`;
+        form.submit();
+    });
 }
 </script>
-@endsection
+@endpush

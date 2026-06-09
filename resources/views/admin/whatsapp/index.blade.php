@@ -258,13 +258,24 @@
 </form>
 @endsection
 
-@section('script')
+@push('scripts')
 <script>
 function deleteConv(id) {
-    if (!confirm('¿Eliminar esta conversación y todos sus mensajes?')) return;
-    const form = document.getElementById('deleteForm');
-    form.action = `/admin/whatsapp/${id}`;
-    form.submit();
+    Swal.fire({
+        title: '¿Eliminar conversación?',
+        text: 'Se eliminarán todos los mensajes.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        const form = document.getElementById('deleteForm');
+        form.action = `/admin/whatsapp/${id}`;
+        form.submit();
+    });
 }
 </script>
-@endsection
+@endpush
