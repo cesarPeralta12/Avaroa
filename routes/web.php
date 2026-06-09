@@ -146,6 +146,11 @@ Route::get('/error/{code}', function ($code) {
     abort($code);
 });
 
+// ── RASTREO PÚBLICO ─────────────────────────────────────────────────────────
+// Cualquier persona con el link puede ver la ubicación del conductor en tiempo real
+Route::get('/track/{token}', [\App\Http\Controllers\TrackingController::class, 'show'])
+    ->name('tracking.show');
+
 Route::get('/verify-email/{id}', function ($id) {
 
     $user = User::findOrFail($id);
@@ -272,7 +277,7 @@ Route::get('admin/unlock', [Admin::class, 'unlock'])->name('unlock');
 Route::post('/update-mode', [Admin::class, 'updateMode']);
 Route::get('/get-user-mode', [Admin::class, 'getUserMode'])->name('getUserMode');
 
-Route::group(['prefix' => 'admin', 'middleware' => ['check.session']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLoggedIn']], function () {
 
     Route::group(['middleware' => 'admin-prevent-back-history', SetLocale::class], function () {
 
@@ -290,6 +295,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session']], function 
         // Verification APIs
         Route::post('/drivers/{id}/verify', [DriverController::class, 'verifyDriver'])->name('drivers.verify');
         Route::post('/drivers/{id}/reject', [DriverController::class, 'rejectDriver'])->name('drivers.reject');
+        Route::post('/drivers/{id}/suspend', [DriverController::class, 'suspendDriver'])->name('drivers.suspend');
 
         // Document Management
         Route::post('/drivers/{driverId}/documents', [DriverController::class, 'uploadDocument'])->name('drivers.documents.upload');
@@ -318,6 +324,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session']], function 
 
             // Fleet overview
             Route::get('/fleet', [TripController::class, 'fleet'])->name('fleet');
+
+            // Tracking token (genera o devuelve el token público del viaje)
+            Route::post('/{tripId}/tracking-token', [\App\Http\Controllers\TrackingController::class, 'generateToken'])
+                ->name('tracking.token');
         });
 
         // Pricing Rules

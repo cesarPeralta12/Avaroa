@@ -1,6 +1,4 @@
 import './bootstrap';
-import { init } from './echo';
-init();
 console.log('APP JS LOADED');
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';

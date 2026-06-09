@@ -20,7 +20,7 @@ class AlreadyLoggedIn
             url('/Userlogin') == $request->url() ||
             url('/verify-otp') == $request->url()
         )) {
-            return back();
+            return redirect('/dashboard');
         }
 
         return $next($request);

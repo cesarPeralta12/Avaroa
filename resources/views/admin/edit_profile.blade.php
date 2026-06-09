@@ -23,8 +23,9 @@
 
     /* Main Card */
     .profile-card {
-        background: white;
+        background: var(--av-card-bg, #ffffff);
         border-radius: 24px;
+        border: 1px solid var(--av-border, rgba(0,0,0,0.07));
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
         overflow: hidden;
         transition: transform 0.2s, box-shadow 0.2s;
@@ -119,6 +120,7 @@
     /* Form Body */
     .profile-body {
         padding: 20px 40px 40px;
+        background: var(--av-card-bg, #ffffff);
     }
 
     /* Form Groups */
@@ -130,7 +132,7 @@
         display: block;
         margin-bottom: 8px;
         font-weight: 600;
-        color: #2d3748;
+        color: var(--av-text, #2d3748);
         font-size: 14px;
     }
 
@@ -146,18 +148,20 @@
     .form-control {
         width: 100%;
         padding: 12px 16px;
-        border: 2px solid #e2e8f0;
+        border: 2px solid var(--av-border, #e2e8f0);
         border-radius: 12px;
         font-size: 14px;
         transition: all 0.2s;
-        background: #f8fafc;
+        background: var(--av-surface, #f8fafc);
+        color: var(--av-text, #1a1d23);
     }
 
     .form-control:focus {
         outline: none;
         border-color: #667eea;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        background: var(--av-card-bg, white);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        color: var(--av-text, #1a1d23);
     }
 
     /* Alerts */
@@ -209,14 +213,14 @@
         left: 0;
         right: 0;
         height: 1px;
-        background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+        background: linear-gradient(to right, transparent, var(--av-border, #e2e8f0), transparent);
     }
 
     .divider span {
-        background: white;
+        background: var(--av-card-bg, white);
         padding: 0 16px;
         position: relative;
-        color: #a0aec0;
+        color: var(--av-text-muted, #a0aec0);
         font-size: 12px;
         font-weight: 600;
         text-transform: uppercase;
@@ -279,7 +283,7 @@
 
     .btn-update:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.35);
     }
 
     .btn-update:active {

@@ -262,58 +262,106 @@ class DriverController extends Controller
         return response()->json(['success' => true, 'message' => 'Selected drivers deleted']);
     }
 
-   public function verifyDriver(Request $request, $id)
-{
-    if (!Session::has('LoggedIn')) {
-        return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+    public function verifyDriver(Request $request, $id)
+    {
+        if (!Session::has('LoggedIn')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $driver = Driver::with(['user', 'documents'])->findOrFail($id);
+
+            // 1. Aprobar TODOS los documentos (defensivo: solo columnas que siempre existen)
+            $docUpdate = ['status' => 'verified'];
+
+            // Agregar columnas opcionales solo si existen (migraciones pueden no estar aplicadas aún)
+            if (\Schema::hasColumn('driver_documents', 'verified_at')) {
+                $docUpdate['verified_at'] = now();
+            }
+            if (\Schema::hasColumn('driver_documents', 'verified_by')) {
+                $docUpdate['verified_by'] = Session::get('LoggedIn');
+            }
+            if (\Schema::hasColumn('driver_documents', 'rejection_reason')) {
+                $docUpdate['rejection_reason'] = null;
+            }
+
+            $driver->documents()->update($docUpdate);
+
+            // 2. Actualizar driver: aprobado y listo para operar
+            $driverUpdate = [
+                'is_verified'     => true,
+                'approval_status' => 'approved',
+                'status'          => 'offline',
+            ];
+
+            $driver->update($driverUpdate);
+
+            // 3. Activar usuario
+            $driver->user->update(['is_active' => true]);
+
+            DB::commit();
+
+            // 4. Notificar FUERA de la transacción — un fallo de WhatsApp
+            //    no debe revertir la verificación ya confirmada en BD
+            try {
+                $this->notifyDriverApproved($driver);
+            } catch (\Throwable $e) {
+                \Log::warning('WhatsApp notification failed after driver approval: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Conductor verificado correctamente. Ya puede iniciar sesión.',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de verificación: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    try {
-        DB::beginTransaction();
+    /**
+     * Suspend or reactivate a driver account (toggle)
+     */
+    public function suspendDriver(Request $request, $id)
+    {
+        if (!Session::has('LoggedIn')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
 
-        $driver = Driver::with(['user', 'documents'])->findOrFail($id);
+        try {
+            $driver = Driver::with('user')->findOrFail($id);
 
-        // ✅ 1. Aprobar TODOS los documentos
-        $driver->documents()->update([
-            'status' => 'verified',
-            'verified_at' => now(),
-            'verified_by' => Session::get('LoggedIn'),
-            'rejection_reason' => null,
-        ]);
+            $currentlyActive = (bool) $driver->user->is_active;
+            $willBeSuspended = $currentlyActive; // if active → suspend; if suspended → reactivate
 
-        // ✅ 2. Actualizar driver: aprobado y listo para operar
-        $driver->update([
-            'is_verified' => true,
-            'approval_status' => 'approved',   // ← CORREGIDO: actualiza approval_status
-            'status' => 'offline',             // ← Listo pero offline hasta que se conecte
-            'verified_at' => now(),
-            'verified_by' => Session::get('LoggedIn'),
-        ]);
+            $driver->user->update(['is_active' => !$willBeSuspended]);
 
-        // ✅ 3. Activar usuario
-        $driver->user->update([
-            'is_active' => true
-        ]);
+            if ($willBeSuspended) {
+                $driver->update(['status' => 'offline']);
+            }
 
-        // ✅ 4. Notificar conductor
-        $this->notifyDriverApproved($driver);
+            return response()->json([
+                'success'    => true,
+                'suspended'  => $willBeSuspended,
+                'message'    => $willBeSuspended
+                    ? 'Conductor suspendido. Ya no puede iniciar sesión.'
+                    : 'Conductor reactivado correctamente.',
+            ]);
 
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Conductor verificado correctamente. Ya puede iniciar sesión.',
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Error de verificación: ' . $e->getMessage()
-        ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
-}
 
     /**
      * Reject driver verification
@@ -331,14 +379,20 @@ class DriverController extends Controller
         try {
             $driver = Driver::with('user')->findOrFail($id);
 
-            $driver->update([
-                'status' => 'rejected',
-                'rejection_reason' => $request->reason,
-                'is_verified' => false,
-            ]);
+            $rejectUpdate = ['status' => 'rejected', 'is_verified' => false];
 
-            // Notify driver
-            $this->notifyDriverRejected($driver, $request->reason);
+            // approval_status column may not exist yet (migration)
+            if (\Schema::hasColumn('drivers', 'approval_status')) {
+                $rejectUpdate['approval_status'] = 'rejected';
+            }
+
+            $driver->update($rejectUpdate);
+
+            try {
+                $this->notifyDriverRejected($driver, $request->reason);
+            } catch (\Throwable $e) {
+                \Log::warning('WhatsApp notification failed after driver rejection: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

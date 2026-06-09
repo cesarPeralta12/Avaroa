@@ -153,7 +153,7 @@ class Admin extends Controller
     public function dashboard(Request $request)
     {
         if (!Session::has('LoggedIn')) {
-            return redirect('login')->with('fail', 'Por favor inicie sesión primero.');
+            return redirect('/admin/login')->with('fail', 'Por favor inicie sesión primero.');
         }
 
         $user_session = User::find(Session::get('LoggedIn'));
@@ -440,7 +440,7 @@ class Admin extends Controller
     public function balanceManagement()
     {
         if (!Session::has('LoggedIn')) {
-            return redirect('/login')->with('fail', 'Por favor inicia sesión');
+            return redirect('/admin/login')->with('fail', 'Por favor inicia sesión');
         }
 
         try {
@@ -595,7 +595,7 @@ class Admin extends Controller
     public function users()
     {
         if (!session()->has('LoggedIn')) {
-            return redirect('/login');
+            return redirect('/admin/login');
         }
 
         // Fetch users directly from your local database (e.g., 'users' table)

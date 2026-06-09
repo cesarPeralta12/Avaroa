@@ -1,0 +1,432 @@
+/**
+ * AVAROA ADMIN — Global dark-mode overrides + general polish
+ * Loaded after style.css and color-1.css so all rules here win.
+ *
+ * Dark palette reference (from style.css theme):
+ *   body bg  : #10101c
+ *   card bg  : #171829
+ *   surface  : #1d1e31
+ *   border   : #323347
+ *   text     : rgba(255,255,255,.80)
+ *   muted    : rgba(255,255,255,.40)
+ */
+
+/* ============================================================
+   0. CSS DESIGN TOKENS — light & dark
+   ============================================================ */
+:root {
+    --av-orange:        #FF8C00;
+    --av-orange-hot:    #E67E00;
+    --av-orange-light:  rgba(255,140,0,0.12);
+    --av-orange-glow:   rgba(255,140,0,0.30);
+
+    /* Backgrounds */
+    --av-body-bg:       #F0F2F5;
+    --av-card-bg:       #ffffff;
+    --av-surface:       #f8fafc;
+    --av-header-bg:     #ffffff;
+
+    /* Borders & shadows */
+    --av-border:        rgba(0,0,0,0.07);
+    --av-shadow:        0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+    --av-shadow-md:     0 4px 16px rgba(0,0,0,.08), 0 8px 30px rgba(0,0,0,.05);
+
+    /* Text */
+    --av-text:          #1A1D23;
+    --av-text-muted:    #6B7280;
+
+    /* Sidebar (always dark) */
+    --av-sidebar-bg:      #0A0F1C;
+    --av-sidebar-surface: #111827;
+}
+
+body.dark-only {
+    --av-body-bg:    #10101c;
+    --av-card-bg:    #171829;
+    --av-surface:    #1d1e31;
+    --av-header-bg:  #171829;
+    --av-border:     #323347;
+    --av-text:       rgba(255,255,255,0.80);
+    --av-text-muted: rgba(255,255,255,0.40);
+}
+
+/* ============================================================
+   1. LOGO — compact-wrapper dark toggle
+      (the built-in CSS only handles .horizontal-wrapper)
+   ============================================================ */
+/* Show dark logo, hide light logo when dark-only + compact layout */
+body.dark-only .logo-wrapper .for-dark,
+body.dark-only .header-logo-wrapper .for-dark {
+    display: block !important;
+}
+body.dark-only .logo-wrapper .for-light,
+body.dark-only .header-logo-wrapper .for-light {
+    display: none !important;
+}
+/* Logo sizing sanity for sidebar */
+.logo-wrapper img {
+    max-width: 160px;
+    height: auto !important;
+    margin-top: -20px !important;
+}
+
+/* ============================================================
+   2. BOOTSTRAP UTILITY OVERRIDES in dark mode
+   ============================================================ */
+body.dark-only .bg-white,
+body.dark-only .card-header.bg-white,
+body.dark-only .modal-content .bg-white {
+    background-color: #171829 !important;
+}
+body.dark-only .bg-light {
+    background-color: #1d1e31 !important;
+}
+body.dark-only .text-dark {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+body.dark-only .text-muted {
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+body.dark-only .border,
+body.dark-only .border-top,
+body.dark-only .border-bottom,
+body.dark-only .border-start,
+body.dark-only .border-end {
+    border-color: #323347 !important;
+}
+body.dark-only hr {
+    border-color: #323347;
+    opacity: .5;
+}
+
+/* ============================================================
+   3. CARDS — general
+   ============================================================ */
+body.dark-only .card {
+    background-color: #171829;
+    border-color: #323347;
+}
+body.dark-only .card-header {
+    background-color: #171829 !important;
+    border-bottom-color: #323347 !important;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-only .card-footer {
+    background-color: #171829 !important;
+    border-top-color: #323347 !important;
+}
+
+/* ============================================================
+   4. TABLES
+   ============================================================ */
+body.dark-only .table {
+    color: rgba(255, 255, 255, 0.8);
+    --bs-table-border-color: #323347;
+    --bs-table-color: rgba(255, 255, 255, 0.8);
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: rgba(255,255,255,.03);
+    --bs-table-hover-bg: rgba(255,255,255,.05);
+}
+body.dark-only .table th,
+body.dark-only .table td {
+    border-color: #323347 !important;
+}
+body.dark-only .table thead th {
+    color: rgba(255, 255, 255, 0.6);
+    background-color: #1d1e31 !important;
+}
+body.dark-only .table-light,
+body.dark-only .table-light th,
+body.dark-only .table-light td {
+    background-color: #1d1e31 !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-color: #323347 !important;
+}
+
+/* ============================================================
+   5. FORMS
+   ============================================================ */
+body.dark-only .form-control,
+body.dark-only .form-select {
+    background-color: #1d1e31;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.8);
+}
+body.dark-only .form-control:focus,
+body.dark-only .form-select:focus {
+    background-color: #1d1e31;
+    border-color: #5b5fc7;
+    color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 .25rem rgba(91, 95, 199, .25);
+}
+body.dark-only .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+}
+body.dark-only .input-group-text {
+    background-color: #1d1e31;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.6);
+}
+body.dark-only .form-label {
+    color: rgba(255, 255, 255, 0.75);
+}
+body.dark-only .form-check-input {
+    background-color: #1d1e31;
+    border-color: #323347;
+}
+body.dark-only .form-text {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* ============================================================
+   6. MODALS
+   ============================================================ */
+body.dark-only .modal-content {
+    background-color: #171829;
+    color: rgba(255, 255, 255, 0.8);
+    border-color: #323347;
+}
+body.dark-only .modal-header {
+    border-bottom-color: #323347;
+    background-color: #171829;
+}
+body.dark-only .modal-footer {
+    border-top-color: #323347;
+    background-color: #171829;
+}
+
+/* ============================================================
+   7. NAVIGATION / BREADCRUMB
+   ============================================================ */
+body.dark-only .breadcrumb-item a {
+    color: rgba(255, 255, 255, 0.55);
+}
+body.dark-only .breadcrumb-item.active {
+    color: rgba(255, 255, 255, 0.35);
+}
+body.dark-only .breadcrumb-item + .breadcrumb-item::before {
+    color: rgba(255, 255, 255, 0.25);
+}
+body.dark-only .nav-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.6);
+}
+body.dark-only .nav-tabs .nav-link.active {
+    background-color: #1d1e31;
+    border-color: #323347 #323347 #1d1e31;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ============================================================
+   8. DROPDOWN / LIST-GROUP / PAGINATION
+   ============================================================ */
+body.dark-only .dropdown-menu {
+    background-color: #171829;
+    border-color: #323347;
+}
+body.dark-only .dropdown-item {
+    color: rgba(255, 255, 255, 0.75);
+}
+body.dark-only .dropdown-item:hover,
+body.dark-only .dropdown-item:focus {
+    background-color: #1d1e31;
+    color: rgba(255, 255, 255, 0.95);
+}
+body.dark-only .dropdown-divider {
+    border-top-color: #323347;
+}
+body.dark-only .list-group-item {
+    background-color: #171829;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.8);
+}
+body.dark-only .list-group-item:hover {
+    background-color: #1d1e31;
+}
+body.dark-only .page-link {
+    background-color: #171829;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.75);
+}
+body.dark-only .page-link:hover {
+    background-color: #1d1e31;
+    color: rgba(255, 255, 255, 0.95);
+}
+body.dark-only .page-item.active .page-link {
+    background-color: #5b5fc7;
+    border-color: #5b5fc7;
+}
+body.dark-only .page-item.disabled .page-link {
+    background-color: #171829;
+    color: rgba(255, 255, 255, 0.25);
+    border-color: #323347;
+}
+
+/* ============================================================
+   9. BADGES — semantic colours that stay readable on dark
+   ============================================================ */
+body.dark-only .badge.bg-light {
+    background-color: #323347 !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* ============================================================
+   10. DATATABLE overrides
+   ============================================================ */
+body.dark-only .dataTables_wrapper .dataTables_filter input,
+body.dark-only .dataTables_wrapper .dataTables_length select {
+    background-color: #1d1e31;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.8);
+}
+body.dark-only .dataTables_wrapper .dataTables_info,
+body.dark-only .dataTables_wrapper .dataTables_filter label,
+body.dark-only .dataTables_wrapper .dataTables_length label {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================================
+   11. PAGE-SPECIFIC — drivers/show.blade.php
+   ============================================================ */
+body.dark-only .stat-pill {
+    background: #1d1e31 !important;
+    border-color: #323347 !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+body.dark-only .info-row {
+    border-bottom-color: #323347 !important;
+}
+body.dark-only .info-row .fw-bold {
+    color: rgba(255, 255, 255, 0.9);
+}
+body.dark-only .doc-preview-wrap {
+    background: #1d1e31 !important;
+}
+body.dark-only .driver-avatar-placeholder {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+/* Status badges */
+body.dark-only .badge-status-active {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #6ee7b7 !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+body.dark-only .badge-status-suspended {
+    background: rgba(239, 68, 68, 0.18) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+}
+body.dark-only .badge-status-pending {
+    background: rgba(245, 158, 11, 0.18) !important;
+    color: #fcd34d !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+}
+/* Document cards — colored border-left stays, background goes dark */
+body.dark-only .doc-card {
+    background: #1d1e31 !important;
+}
+body.dark-only .doc-card .card-header,
+body.dark-only .doc-card .card-body,
+body.dark-only .doc-card .card-footer {
+    background: transparent !important;
+}
+
+/* ============================================================
+   12. PAGE-SPECIFIC — trips/index.blade.php
+   ============================================================ */
+body.dark-only .driver-profile {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+}
+body.dark-only .driver-name {
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+body.dark-only .driver-role {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+body.dark-only .driver-status-badge.online {
+    background: rgba(72, 187, 120, 0.2) !important;
+    color: #9ae6b4 !important;
+}
+body.dark-only .driver-status-badge.offline {
+    background: rgba(245, 101, 101, 0.2) !important;
+    color: #fc8181 !important;
+}
+body.dark-only .info-card {
+    background: #1d1e31 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+body.dark-only .info-card-header {
+    border-bottom-color: #323347 !important;
+}
+body.dark-only .info-card-title {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+body.dark-only .info-card-icon.contact {
+    background: rgba(49, 130, 206, 0.2) !important;
+    color: #90cdf4 !important;
+}
+body.dark-only .info-card-icon.vehicle {
+    background: rgba(56, 161, 105, 0.2) !important;
+    color: #9ae6b4 !important;
+}
+body.dark-only .info-card-icon.stats {
+    background: rgba(128, 90, 213, 0.2) !important;
+    color: #d6bcfa !important;
+}
+
+/* ============================================================
+   13. PAGE-SPECIFIC — drivers/pending.blade.php
+   ============================================================ */
+body.dark-only .card-header.bg-white {
+    background-color: #171829 !important;
+}
+
+/* ============================================================
+   14. SWEETALERT2 — dark mode
+   ============================================================ */
+body.dark-only .swal2-popup {
+    background: #171829;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-only .swal2-title {
+    color: rgba(255, 255, 255, 0.9);
+}
+body.dark-only .swal2-content,
+body.dark-only .swal2-html-container {
+    color: rgba(255, 255, 255, 0.7);
+}
+body.dark-only .swal2-input,
+body.dark-only .swal2-textarea {
+    background-color: #1d1e31;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* ============================================================
+   15. SELECT2 — dark mode
+   ============================================================ */
+body.dark-only .select2-container--default .select2-selection--single,
+body.dark-only .select2-container--default .select2-selection--multiple {
+    background-color: #1d1e31;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.8);
+}
+body.dark-only .select2-container--default .select2-selection__rendered {
+    color: rgba(255, 255, 255, 0.8);
+}
+body.dark-only .select2-dropdown {
+    background-color: #171829;
+    border-color: #323347;
+}
+body.dark-only .select2-container--default .select2-results__option {
+    color: rgba(255, 255, 255, 0.75);
+}
+body.dark-only .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #1d1e31;
+    color: rgba(255, 255, 255, 0.95);
+}
+body.dark-only .select2-search--dropdown .select2-search__field {
+    background-color: #1d1e31;
+    border-color: #323347;
+    color: rgba(255, 255, 255, 0.8);
+}

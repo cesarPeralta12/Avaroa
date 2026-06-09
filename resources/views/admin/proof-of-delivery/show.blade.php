@@ -179,7 +179,8 @@
                             <div class="detail-value d-flex align-items-center">
                                 @if($trip->driver?->user?->profile_photo)
                                     <img src="{{ asset($trip->driver->user->profile_photo) }}"
-                                         class="rounded-circle me-2" width="30" height="30">
+                                         class="rounded-circle me-2" width="30" height="30"
+                                         style="object-fit: cover; width: 30px; height: 30px;">
                                 @endif
                                 {{ $trip->driver?->user?->name ?? 'N/A' }}
                             </div>

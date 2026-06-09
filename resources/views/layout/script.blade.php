@@ -26,14 +26,6 @@
 
 
 {{-- =========================================================
-   GOOGLE MAPS (OPTIONAL)
-========================================================= --}}
-<script async defer
-src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&callback=initMap&libraries=places,marker&v=weekly">
-</script>
-
-
-{{-- =========================================================
    SWEETALERT
 ========================================================= --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -134,3 +126,9 @@ document.addEventListener("DOMContentLoaded", function(){
    PAGE LEVEL SCRIPTS
 ========================================================= --}}
 @stack('scripts')
+
+{{-- =========================================================
+   GOOGLE MAPS — cargado AL FINAL para que initMap ya esté
+   definido cuando la API dispare el callback
+========================================================= --}}
+@stack('maps-script')

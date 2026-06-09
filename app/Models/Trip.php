@@ -49,13 +49,14 @@ class Trip extends Model
         'quote_id',
         'payment_id',
         'pod_id',
-        'accepted_at',        // ADD THIS
-        'driver_arrived_at',  // ADD THIS
-        'picked_up_at',       // ADD THIS
-        'started_at',         // ADD THIS
-        'completed_at',       // ADD THIS
-        'cancelled_at',       // ADD THIS
-        'cancelled_by'
+        'accepted_at',
+        'driver_arrived_at',
+        'picked_up_at',
+        'started_at',
+        'completed_at',
+        'cancelled_at',
+        'cancelled_by',
+        'tracking_token',
     ];
     
     // Add casts for date fields

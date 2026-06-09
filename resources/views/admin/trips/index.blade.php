@@ -37,6 +37,7 @@
             text-align: center;
             position: relative;
         }
+        /* dark override moved to avaroa-admin.css */
         .driver-avatar {
             width: 120px;
             height: 120px;
@@ -73,6 +74,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
+        /* dark overrides in avaroa-admin.css */
         .driver-status-badge {
             display: inline-flex;
             align-items: center;
@@ -91,6 +93,7 @@
             background: #fed7d7;
             color: #742a2a;
         }
+        /* dark overrides in avaroa-admin.css */
         .status-dot {
             width: 8px;
             height: 8px;
@@ -140,18 +143,10 @@
             justify-content: center;
             font-size: 1.25rem;
         }
-        .info-card-icon.contact {
-            background: #ebf8ff;
-            color: #3182ce;
-        }
-        .info-card-icon.vehicle {
-            background: #f0fff4;
-            color: #38a169;
-        }
-        .info-card-icon.stats {
-            background: #faf5ff;
-            color: #805ad5;
-        }
+        .info-card-icon.contact { background: #ebf8ff; color: #3182ce; }
+        .info-card-icon.vehicle { background: #f0fff4; color: #38a169; }
+        .info-card-icon.stats   { background: #faf5ff; color: #805ad5; }
+        /* dark overrides for all .info-card-icon.* in avaroa-admin.css */
         .info-card-title {
             font-weight: 700;
             color: #2d3748;
@@ -388,9 +383,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">Lista de Viajes</h4>
-                    <!--<a href="{{ route('trips.create') }}" class="btn btn-success btn-sm">-->
-                    <!--    <i class="fas fa-plus"></i> Crear Orden-->
-                    <!--</a>-->
+                    <a href="{{ route('trips.create') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-1"></i> Crear Viaje
+                    </a>
                 </div>
                 <div class="card-body">
                     {{-- BULK DELETE --}}
@@ -631,7 +626,7 @@
                             </a>
                             <button type="button"
                                     class="btn-action track"
-                                    onclick="trackDriver({{ $driver->id }})">
+                                    onclick="openTrackingLink({{ $trip->id }})">
                                 <i class="fas fa-map-marker-alt"></i> Rastrear
                             </button>
                         </div>
@@ -645,26 +640,52 @@
 
 @section('js')
     <script>
-        // Rastrear conductor
-        function trackDriver(driverId) {
+        // Generar / obtener link de rastreo para un viaje
+        function openTrackingLink(tripId) {
             Swal.fire({
-                title: 'Localizando Conductor...',
-                text: 'Obteniendo ubicación en tiempo real',
+                title: 'Generando link...',
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                didOpen: () => Swal.showLoading()
             });
 
-            // Simulación - reemplazar con tu lógica real de tracking
-            setTimeout(() => {
+            fetch(`/admin/trips/${tripId}/tracking-token`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
                 Swal.fire({
-                    icon: 'info',
-                    title: 'Ubicación del Conductor',
-                    text: 'El rastreo del conductor se abriría aquí. Implementa con tu sistema GPS.',
-                    confirmButtonText: 'Cerrar'
+                    icon: 'success',
+                    title: '🚚 Link de Rastreo',
+                    html: `
+                        <p class="mb-3 text-muted">Compartí este link con el cliente para que pueda seguir el pedido en tiempo real.</p>
+                        <div class="input-group">
+                            <input type="text" id="trackUrl" class="form-control form-control-sm"
+                                   value="${data.url}" readonly>
+                            <button class="btn btn-warning btn-sm" onclick="copyTrackUrl()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <a href="${data.url}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-external-link-alt me-1"></i> Abrir mapa
+                            </a>
+                        </div>`,
+                    confirmButtonText: 'Cerrar',
+                    confirmButtonColor: '#5c61f2',
                 });
-            }, 1500);
+            })
+            .catch(() => Swal.fire('Error', 'No se pudo generar el link', 'error'));
+        }
+
+        function copyTrackUrl() {
+            const input = document.getElementById('trackUrl');
+            navigator.clipboard.writeText(input.value).then(() => {
+                Swal.showValidationMessage('¡Copiado al portapapeles!');
+            });
         }
 
         // Initialize DataTable

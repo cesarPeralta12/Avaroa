@@ -50,12 +50,13 @@
                 <div class="col-xl-4 col-lg-6 mb-4">
                     <div class="card h-100 shadow-sm border-0">
                         {{-- Header --}}
-                        <div class="card-header bg-white border-bottom-0 pt-4">
+                        <div class="card-header border-bottom-0 pt-4">
                             <div class="d-flex align-items-center">
                                 <div class="position-relative">
                                     @if($driver->user?->profile_photo)
                                         <img src="{{ \App\Services\FileUploadService::getUrl($driver->user->profile_photo) }}"
-                                             class="rounded-circle" width="64" height="64" alt="">
+                                             class="rounded-circle" width="64" height="64" alt=""
+                                             style="object-fit: cover; width: 64px; height: 64px;">
                                     @else
                                         <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary"
                                              style="width: 64px; height: 64px;">
