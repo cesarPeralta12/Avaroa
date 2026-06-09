@@ -32,6 +32,16 @@ return new class extends Migration
             ->get(['id', 'driver_id']);
 
         foreach ($trips as $trip) {
+            // Skip if the driver no longer exists (orphaned trip data)
+            $driverExists = DB::table('drivers')->where('id', $trip->driver_id)->exists();
+            if (!$driverExists) {
+                // Orphaned trip — just reset status, no DriverRequest
+                DB::table('trips')
+                    ->where('id', $trip->id)
+                    ->update(['status' => 'pending', 'driver_id' => null]);
+                continue;
+            }
+
             DB::table('driver_requests')->insert([
                 'trip_id'      => $trip->id,
                 'driver_id'    => $trip->driver_id,

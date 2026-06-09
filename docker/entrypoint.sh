@@ -13,7 +13,7 @@ echo "==> Linking storage..."
 php /var/www/html/artisan storage:link --force
 
 echo "==> Running migrations..."
-php /var/www/html/artisan migrate --force
+php /var/www/html/artisan migrate --force || echo "==> WARNING: migration had errors — continuing startup anyway"
 
 echo "==> Starting services (Apache + Reverb)..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
