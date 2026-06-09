@@ -54,37 +54,54 @@ class DeliveryController extends Controller
             return response()->json(['error' => 'Driver profile not found'], 404);
         }
 
+        // Variables populated inside the transaction and used outside
+        $otherDriverIds      = [];
+        $estimatedCommission = 0;
+        $previousStatus      = '';
+        $acceptedTrip        = null;
+
         try {
-            return DB::transaction(function () use ($tripId, $driver) {
+            // \u2500\u2500 1. ONLY DB WORK inside the transaction \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            // Broadcasts and WhatsApp calls happen AFTER the transaction commits
+            // so the DB lock is released quickly and the app gets a fast response.
+            $txResult = DB::transaction(function () use ($tripId, $driver,
+                &$otherDriverIds, &$estimatedCommission, &$previousStatus) {
 
                 $trip = Trip::lockForUpdate()->findOrFail($tripId);
 
                 if (!in_array($trip->status, ['searching', 'quoted', 'pending'])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Delivery no longer available',
-                        'status' => $trip->status,
-                        'assigned_driver_id' => $trip->driver_id,
-                    ], 410);
+                    // Return a marker so we can detect the early-exit outside
+                    return [
+                        'early_exit' => true,
+                        'response' => response()->json([
+                            'success' => false,
+                            'message' => 'Delivery no longer available',
+                            'status' => $trip->status,
+                            'assigned_driver_id' => $trip->driver_id,
+                        ], 410),
+                    ];
                 }
 
                 $wallet = $driver->wallet ?? null;
                 $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * 0.15);
 
                 if (!$wallet || $wallet->balance < $estimatedCommission) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Saldo insuficiente para comisi\u00f3n',
-                        'required' => $estimatedCommission,
-                        'current' => $wallet?->balance ?? 0,
-                    ], 403);
+                    return [
+                        'early_exit' => true,
+                        'response' => response()->json([
+                            'success' => false,
+                            'message' => 'Saldo insuficiente para comisi\u00f3n',
+                            'required' => $estimatedCommission,
+                            'current' => $wallet?->balance ?? 0,
+                        ], 403),
+                    ];
                 }
 
                 $previousStatus = $trip->status;
 
                 $trip->update([
-                    'driver_id' => $driver->id,
-                    'status' => 'accepted',
+                    'driver_id'   => $driver->id,
+                    'status'      => 'accepted',
                     'accepted_at' => now(),
                 ]);
 
@@ -106,53 +123,64 @@ class DeliveryController extends Controller
                 DriverRequest::where('trip_id', $trip->id)
                     ->where('driver_id', $driver->id)
                     ->update([
-                        'status' => 'accepted',
-                        'responded_at' => now()
+                        'status'       => 'accepted',
+                        'responded_at' => now(),
                     ]);
 
                 ConversationSession::where('trip_id', $trip->id)
                     ->update(['state' => 'DRIVER_ASSIGNED']);
 
-                try {
-                    broadcast(new DeliveryAccepted($trip, $driver, $otherDriverIds));
-                    broadcast(new TripStatusChanged($trip, $previousStatus, [
-                        'accepted_by' => $driver->id,
-                        'accepted_at' => now()->toIso8601String(),
-                    ]));
-                } catch (\Exception $e) {
-                    Log::error('Broadcast failed: ' . $e->getMessage());
-                }
-
-                try {
-                    $this->notifyCustomerAssigned($trip, $driver);
-                } catch (\Exception $e) {
-                    Log::error('Notify customer failed: ' . $e->getMessage());
-                }
-
-                foreach ($otherDriverIds as $loserId) {
-                    try {
-                        $loserDriver = Driver::find($loserId);
-                        if ($loserDriver && $loserDriver->user) {
-                            $this->notifyDriverRejected($loserDriver, $trip);
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('Notify rejected failed: ' . $e->getMessage());
-                    }
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'trip' => $trip->fresh(),
-                    'estimated_commission' => $estimatedCommission,
-                    'message' => 'Delivery assigned successfully',
-                ]);
+                return ['early_exit' => false, 'trip' => $trip->fresh()];
             });
+
+            // Handle early-exit responses (trip already taken / insufficient balance)
+            if ($txResult['early_exit']) {
+                return $txResult['response'];
+            }
+
+            $acceptedTrip = $txResult['trip'];
+
+            // \u2500\u2500 2. BROADCASTS (outside transaction \u2014 fast) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            try {
+                broadcast(new DeliveryAccepted($acceptedTrip, $driver, $otherDriverIds));
+                broadcast(new TripStatusChanged($acceptedTrip, $previousStatus, [
+                    'accepted_by' => $driver->id,
+                    'accepted_at' => now()->toIso8601String(),
+                ]));
+            } catch (\Exception $e) {
+                Log::error('Broadcast failed: ' . $e->getMessage());
+            }
+
+            // \u2500\u2500 3. WHATSAPP NOTIFICATIONS (outside transaction \u2014 potentially slow) \u2500\u2500
+            try {
+                $this->notifyCustomerAssigned($acceptedTrip, $driver);
+            } catch (\Exception $e) {
+                Log::error('Notify customer failed: ' . $e->getMessage());
+            }
+
+            foreach ($otherDriverIds as $loserId) {
+                try {
+                    $loserDriver = Driver::find($loserId);
+                    if ($loserDriver && $loserDriver->user) {
+                        $this->notifyDriverRejected($loserDriver, $acceptedTrip);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Notify rejected failed: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success'              => true,
+                'trip'                 => $acceptedTrip,
+                'estimated_commission' => $estimatedCommission,
+                'message'              => 'Delivery assigned successfully',
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Accept delivery failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Server error: ' . $e->getMessage()
+                'message' => 'Server error: ' . $e->getMessage(),
             ], 500);
         }
     }
