@@ -347,9 +347,9 @@ function updateSubmitBtn() {
 let map, originMarker, destMarker;
 
 function initMap() {
-    // Centro en Cochabamba, Bolivia
+    // Centro en Santa Cruz de la Sierra, Bolivia
     map = new google.maps.Map(document.getElementById('tripMap'), {
-        center: { lat: -17.3895, lng: -66.1568 },
+        center: { lat: -17.7863, lng: -63.1812 },
         zoom: 13,
         mapTypeControl: false,
         streetViewControl: false,
