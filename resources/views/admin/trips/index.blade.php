@@ -296,17 +296,7 @@ body:not(.dark) .ftab-all { border-color: #94a3b8; color: #64748b; }
 @endsection
 
 @section('main_content')
-@php
-// Fallback por si el controlador no pasa $stats (compatibilidad con versiones anteriores)
-if (!isset($stats)) {
-    $stats = [
-        'total'     => \App\Models\Trip::count(),
-        'active'    => \App\Models\Trip::whereIn('status', ['CONFIRMED','DISPATCHING','ASSIGNED','PICKUP','IN_TRIP'])->count(),
-        'completed' => \App\Models\Trip::where('status','COMPLETED')->whereDate('completed_at', today())->count(),
-        'cancelled'  => \App\Models\Trip::where('status','CANCELLED')->count(),
-    ];
-}
-@endphp
+@php $stats = $stats ?? ['total' => 0, 'active' => 0, 'completed' => 0, 'cancelled' => 0]; @endphp
 <div class="page-content">
 <div class="container-fluid">
 

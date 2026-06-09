@@ -29,7 +29,7 @@ class TripController extends Controller
         $trips = Trip::with([
             'customer:id,name',
             'driver:id,user_id',
-            'driver.user:id,name,whatsapp_number,phone',
+            'driver.user:id,name,whatsapp_number',
             'driver.vehicles:id,driver_id,plate_number,type',
             'quote',
         ])->latest()->paginate(150);
