@@ -84,9 +84,10 @@ class TripController extends Controller
 
         DB::beginTransaction();
         try {
-            // Determinar status y conductor
+            // Siempre 'pending' para que aparezca en /deliveries/available de la app.
+            // La diferencia está en el DriverRequest: directo = 1 conductor, broadcast = todos.
             $driverId = $request->driver_id ?: null;
-            $status   = $driverId ? 'assigned' : 'pending';
+            $status   = 'pending';
 
             $trip = Trip::create(array_merge($validated, [
                 'status'          => $status,
@@ -153,7 +154,7 @@ class TripController extends Controller
                 'message'  => $driverId
                     ? '✅ Viaje creado y asignado al conductor.'
                     : '✅ Viaje creado. Notificando a conductores disponibles...',
-                'redirect' => route('admin.trips.index'),
+                'redirect' => route('trips.index'),
             ]);
 
         } catch (\Exception $e) {
@@ -215,7 +216,7 @@ class TripController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Trip updated successfully.',
-            'redirect' => route('admin.trips.index')
+            'redirect' => route('trips.index')
         ]);
     }
 
