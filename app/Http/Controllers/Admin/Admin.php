@@ -891,33 +891,42 @@ class Admin extends Controller
 
         return view('others.authentication.unlock');
     }
-   public function unlocked(Request $request)
+     public function unlocked(Request $request)
     {
-        $request->validate([
-            'password' => 'required',
-        ]);
+    $request->validate([
+        'password' => 'required',
+    ]);
 
-        $user = User::where('custom_password', $request->password)->first();
+    // Busca al usuario por la sesión activa, no por contraseña
+    $userId = Session::get('LoggedIn');
 
-        if (!$user) {
-            return back()->with('fail', 'User not found.');
-        }
+    // Si la sesión expiró completamente, manda al login
+    if (!$userId) {
+        return redirect('admin/login');
+    }
 
-        if (!Hash::check($request->password, $user->password)) {
-            return back()->with('fail', 'Password does not match.');
-        }
+    $user = User::find($userId);
 
-        // ✅ IMPORTANT
-        Auth::login($user);
+    // Si el usuario no existe, manda al login
+    if (!$user) {
+        return redirect('admin/login');
+    }
 
-        session()->put('LoggedIn', $user->id);
+    // Verifica la contraseña correctamente con Hash
+    if (!Hash::check($request->password, $user->password)) {
+        return back()->with('fail', 'Contraseña incorrecta.');
+    }
 
-        $user->update([
-            'is_online' => 1,
-            'last_seen' => now(),
-        ]);
+    // Reactiva la sesión
+    Auth::login($user);
+    session()->put('LoggedIn', $user->id);
 
-        return redirect('admin/dashboard');
+    $user->update([
+        'is_online' => 1,
+        'last_seen' => now(),
+    ]);
+
+    return redirect('admin/dashboard');
     }
     public function bulkDelete(Request $request)
     {
