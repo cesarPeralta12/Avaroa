@@ -1,6 +1,6 @@
 @extends('master')
 
-@section('title', 'Create Account - F Standard')
+@section('title', 'Crear Cuenta - Avaroa')
 
 @section('content')
     <style>

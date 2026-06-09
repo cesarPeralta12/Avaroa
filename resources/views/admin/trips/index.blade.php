@@ -626,7 +626,7 @@
                             </a>
                             <button type="button"
                                     class="btn-action track"
-                                    onclick="trackDriver({{ $driver->id }})">
+                                    onclick="openTrackingLink({{ $trip->id }})">
                                 <i class="fas fa-map-marker-alt"></i> Rastrear
                             </button>
                         </div>
@@ -640,26 +640,52 @@
 
 @section('js')
     <script>
-        // Rastrear conductor
-        function trackDriver(driverId) {
+        // Generar / obtener link de rastreo para un viaje
+        function openTrackingLink(tripId) {
             Swal.fire({
-                title: 'Localizando Conductor...',
-                text: 'Obteniendo ubicación en tiempo real',
+                title: 'Generando link...',
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                didOpen: () => Swal.showLoading()
             });
 
-            // Simulación - reemplazar con tu lógica real de tracking
-            setTimeout(() => {
+            fetch(`/admin/trips/${tripId}/tracking-token`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
                 Swal.fire({
-                    icon: 'info',
-                    title: 'Ubicación del Conductor',
-                    text: 'El rastreo del conductor se abriría aquí. Implementa con tu sistema GPS.',
-                    confirmButtonText: 'Cerrar'
+                    icon: 'success',
+                    title: '🚚 Link de Rastreo',
+                    html: `
+                        <p class="mb-3 text-muted">Compartí este link con el cliente para que pueda seguir el pedido en tiempo real.</p>
+                        <div class="input-group">
+                            <input type="text" id="trackUrl" class="form-control form-control-sm"
+                                   value="${data.url}" readonly>
+                            <button class="btn btn-warning btn-sm" onclick="copyTrackUrl()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <a href="${data.url}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-external-link-alt me-1"></i> Abrir mapa
+                            </a>
+                        </div>`,
+                    confirmButtonText: 'Cerrar',
+                    confirmButtonColor: '#5c61f2',
                 });
-            }, 1500);
+            })
+            .catch(() => Swal.fire('Error', 'No se pudo generar el link', 'error'));
+        }
+
+        function copyTrackUrl() {
+            const input = document.getElementById('trackUrl');
+            navigator.clipboard.writeText(input.value).then(() => {
+                Swal.showValidationMessage('¡Copiado al portapapeles!');
+            });
         }
 
         // Initialize DataTable

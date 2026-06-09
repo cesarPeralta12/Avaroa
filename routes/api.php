@@ -24,6 +24,11 @@ Route::get('/whatsapp/webhook', [WhatsAppWebhookController::class, 'verify']);
 Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'receive']);
 Route::post('/whatsapp/test-send', [WhatsAppWebhookController::class, 'testSend']);
 
+// ── TRACKING GPS PÚBLICO ────────────────────────────────────────────────────
+// El conductor envía su ubicación cada 3s (no requiere auth, solo el token del viaje)
+Route::post('/track/{token}/location', [\App\Http\Controllers\TrackingController::class, 'updateLocation'])
+    ->name('api.tracking.location');
+
 // Auth
 Route::prefix('auth')->group(function () {
 

@@ -146,6 +146,11 @@ Route::get('/error/{code}', function ($code) {
     abort($code);
 });
 
+// ── RASTREO PÚBLICO ─────────────────────────────────────────────────────────
+// Cualquier persona con el link puede ver la ubicación del conductor en tiempo real
+Route::get('/track/{token}', [\App\Http\Controllers\TrackingController::class, 'show'])
+    ->name('tracking.show');
+
 Route::get('/verify-email/{id}', function ($id) {
 
     $user = User::findOrFail($id);
@@ -319,6 +324,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
 
             // Fleet overview
             Route::get('/fleet', [TripController::class, 'fleet'])->name('fleet');
+
+            // Tracking token (genera o devuelve el token público del viaje)
+            Route::post('/{tripId}/tracking-token', [\App\Http\Controllers\TrackingController::class, 'generateToken'])
+                ->name('tracking.token');
         });
 
         // Pricing Rules

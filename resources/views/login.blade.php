@@ -1,6 +1,6 @@
 @extends('master')
 
-@section('title', 'Sign In - F Standard')
+@section('title', 'Iniciar Sesión - Avaroa')
 
 @section('content')
 <style>
@@ -133,8 +133,11 @@
             <div class="col-md-8 col-lg-6">
                 <div class="auth-card">
                     <div class="auth-header">
-                        <h3>Sign In to Your Account</h3>
-                        <p>Join thousands of successful traders with F Standard</p>
+                        <div class="mb-3">
+                            <i class="fas fa-truck fa-2x opacity-75"></i>
+                        </div>
+                        <h3>Bienvenido a Avaroa</h3>
+                        <p>Ingresá tu número para continuar</p>
                     </div>
 
                     <div class="auth-body pt-4">
@@ -146,32 +149,29 @@
                         <form id="loginForm">
                             <!-- Step 1: Mobile Number -->
                             <div class="step active" id="step1">
-                                <h4 class="text-center mb-4">Enter Your Mobile Number</h4>
-                                <p class="text-center text-muted mb-4">We will send you a one-time verification code</p>
+                                <h4 class="text-center mb-4">Ingresá tu número</h4>
+                                <p class="text-center text-muted mb-4">Te enviaremos un código de verificación por SMS</p>
 
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Mobile Number</label>
+                                    <label class="form-label fw-bold">Número de celular</label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0">+91</span>
+                                        <span class="input-group-text bg-white border-end-0" style="font-weight:600;">🇧🇴 +591</span>
                                         <input type="text" name="mobile" class="form-control border-start-0 ps-0"
-                                               placeholder="Enter 10-digit number" maxlength="10"
-                                               inputmode="numeric" autocomplete="off">
+                                               placeholder="Ej: 69160031" maxlength="8"
+                                               inputmode="numeric" autocomplete="off" id="mobileInput">
                                     </div>
-                                    <small class="text-muted d-block mt-2">
-                                        Test with: <strong>9876543210</strong> → Real OTP will be sent
-                                    </small>
                                 </div>
 
                                 <button type="button" class="btn btn-primary w-100 btn-lg" id="sendOtpBtn">
-                                    Send OTP
+                                    <i class="fas fa-paper-plane me-2"></i>Enviar código
                                 </button>
                             </div>
 
                             <!-- Step 2: Verify OTP -->
                             <div class="step" id="step2">
-                                <h4 class="text-center mb-3">Enter Verification Code</h4>
+                                <h4 class="text-center mb-3">Ingresá el código</h4>
                                 <p class="text-center text-muted mb-4">
-                                    We sent a 6-digit code to <strong id="maskedMobile"></strong>
+                                    Enviamos un código a <strong id="maskedMobile"></strong>
                                 </p>
 
                                 <div class="d-flex justify-content-center gap-3 mb-4">
@@ -184,21 +184,21 @@
                                 </div>
 
                                 <div class="text-center mb-4">
-                                    <span class="text-muted">Didn't receive code?</span>
-                                    <a href="#" class="resend-link ms-1" id="resendOtp">Resend OTP</a>
+                                    <span class="text-muted">¿No recibiste el código?</span>
+                                    <a href="#" class="resend-link ms-1" id="resendOtp">Reenviar</a>
                                     <span id="timer" class="ms-2 text-primary fw-bold"></span>
                                 </div>
 
                                 <button type="button" class="btn btn-primary w-100 btn-lg" id="verifyOtpBtn">
-                                    Verify & Sign In
+                                    <i class="fas fa-check-circle me-2"></i>Verificar e Ingresar
                                 </button>
                             </div>
                         </form>
 
                         <hr class="my-4">
                         <p class="text-center mb-0">
-                            Don't have an account?
-                            <a href="{{ url('signup') }}" class="fw-bold text-primary">Create one here</a>
+                            ¿No tenés cuenta?
+                            <a href="{{ url('signup') }}" class="fw-bold text-primary">Registrate aquí</a>
                         </p>
                     </div>
                 </div>

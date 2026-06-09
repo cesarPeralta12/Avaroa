@@ -1069,13 +1069,12 @@
 
                 @php
                 $links = [
-                    '/' => 'Home',
-                    'blog' => 'Blog',
-                    'challenges' => 'Challenges',
-                    'affiliate' => 'Partner',
-                    'faq' => 'FAQ',
-
-                    'challenges' => 'Challeges',
+                    '/'        => 'Inicio',
+                    'service'  => 'Servicios',
+                    'about'    => 'Nosotros',
+                    'blog'     => 'Blog',
+                    'faq'      => 'FAQ',
+                    'contact'  => 'Contacto',
                 ];
                 @endphp
 
@@ -1102,34 +1101,25 @@
                     <li class="nav-item px-2">
                         <a class="btn rounded-pill px-4 py-2"
                            href="{{ url('dashboard') }}"
-                           style="
-                                background:var(--primary);
-                                color:white;
-                                border:none;
-                                font-weight:600;
-                                transition:0.3s;
-                                box-shadow:0px 4px 10px rgba(124,58,237,0.25);
-                           "
-                           onmouseover="this.style.background='var(--primary-dark)'; this.style.boxShadow='0px 4px 18px rgba(124,58,237,0.4)'; this.style.transform='translateY(-3px)'"
-                           onmouseout="this.style.background='var(--primary)'; this.style.boxShadow='0px 4px 10px rgba(124,58,237,0.25)'; this.style.transform='translateY(0)'">
-                            Dashboard
+                           style="background:var(--primary);color:white;border:none;font-weight:600;transition:0.3s;box-shadow:0px 4px 10px rgba(255,140,0,0.3);"
+                           onmouseover="this.style.background='var(--primary-dark)';this.style.transform='translateY(-3px)'"
+                           onmouseout="this.style.background='var(--primary)';this.style.transform='translateY(0)'">
+                            Mi Cuenta
                         </a>
                     </li>
                 @else
+                    <li class="nav-item px-1">
+                        <a class="nav-link" href="{{ url('Userlogin') }}"
+                           style="font-weight:500;color:var(--dark);padding:8px 12px;border-radius:6px;transition:0.3s;">
+                            Iniciar Sesión
+                        </a>
+                    </li>
                     <li class="nav-item px-2">
                         <a class="btn rounded-pill px-4 py-2"
-                           href="{{ url('signup') }}"
-                           style="
-                                background:var(--primary);
-                                color:white;
-                                border:none;
-                                font-weight:600;
-                                transition:0.3s;
-                                box-shadow:0px 4px 10px rgba(124,58,237,0.25);
-                           "
-                           onmouseover="this.style.background='var(--primary-dark)'; this.style.boxShadow='0px 4px 18px rgba(124,58,237,0.4)'; this.style.transform='translateY(-3px)'"
-                           onmouseout="this.style.background='var(--primary)'; this.style.boxShadow='0px 4px 10px rgba(124,58,237,0.25)'; this.style.transform='translateY(0)'">
-                            Access Capital
+                           href="https://wa.me/59169160031?text=Hola,%20quiero%20pedir%20un%20servicio%20Avaroa"
+                           target="_blank"
+                           style="background:var(--primary);color:white;border:none;font-weight:600;transition:0.3s;box-shadow:0px 4px 10px rgba(255,140,0,0.3);">
+                            <i class="fab fa-whatsapp me-1"></i> Pedir Ahora
                         </a>
                     </li>
                 @endif
@@ -1150,59 +1140,53 @@
         <div class="container position-relative">
             <div class="row">
                 <div class="col-md-4 mb-4">
-                    <h4 class="fw-bold mb-3"><img src="<?php echo '/' . $general_setting['app_logo'] ?? ''; ?>" alt="" width="200"
-                            height="200"></h4>
-                    <p class="text-white">Empowering traders worldwide with limitless opportunities and premium funding
-                        programs.</p>
+                    <h4 class="fw-bold mb-3">
+                        <img src="{{ asset($general_setting['app_logo'] ?? '') }}" alt="Avaroa" width="120" height="60" style="object-fit:contain;">
+                    </h4>
+                    <p class="text-white opacity-75">Servicio rápido y de calidad en delivery, taxi y carga en Bolivia. Conectamos a conductores y clientes en tiempo real.</p>
                     <div class="social-icons mt-4">
+                        <a href="https://wa.me/59169160031" target="_blank"><i class="fab fa-whatsapp"></i></a>
                         <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
                         <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
                     </div>
                 </div>
                 <div class="col-md-2 mb-4">
-                    <h5 class="fw-bold mb-3">Company</h5>
+                    <h5 class="fw-bold mb-3">Empresa</h5>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="#" data-page="about">About Us</a></li>
-
+                        <li class="mb-2"><a href="{{ url('about') }}">Nosotros</a></li>
                         <li class="mb-2"><a href="{{ url('blog') }}">Blog</a></li>
-
+                        <li class="mb-2"><a href="{{ url('contact') }}">Contacto</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">
-                    <h5 class="fw-bold mb-3">Products</h5>
+                    <h5 class="fw-bold mb-3">Servicios</h5>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="#" data-page="challenges">Funding Programs</a></li>
-                        <li class="mb-2"><a href="#">Trading Platform</a></li>
-
+                        <li class="mb-2"><a href="{{ url('service') }}">Delivery</a></li>
+                        <li class="mb-2"><a href="{{ url('service') }}">Taxi</a></li>
+                        <li class="mb-2"><a href="{{ url('service') }}">Carga Pesada</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">
-                    <h5 class="fw-bold mb-3">Support</h5>
+                    <h5 class="fw-bold mb-3">Soporte</h5>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{{ url('faq') }}">FAQs</a></li>
-                        <li class="mb-2"><a href="{{ route('contact') }}">Contact Us</a></li>
-
+                        <li class="mb-2"><a href="{{ url('faq') }}">Preguntas Frecuentes</a></li>
+                        <li class="mb-2"><a href="{{ url('contact') }}">Contáctanos</a></li>
+                        <li class="mb-2"><a href="{{ url('support') }}">Tickets</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">
                     <h5 class="fw-bold mb-3">Legal</h5>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="#" data-page="risk" class="text-white">Risk Disclosure</a>
-                        </li>
-                        <li class="mb-2"><a href="#" data-page="terms" class="text-white">Terms of
-                                Service</a></li>
-                        <li class="mb-2"><a href="#" data-page="privacy" class="text-white">Privacy
-                                Policy</a></li>
+                        <li class="mb-2"><a href="{{ url('privacy') }}" class="text-white">Privacidad</a></li>
+                        <li class="mb-2"><a href="{{ url('genTerm') }}" class="text-white">Términos</a></li>
                     </ul>
                 </div>
             </div>
             <hr class="my-4 bg-secondary">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0">&copy; 2025 F Standard. All rights reserved.</p>
+                    <p class="mb-0">&copy; {{ date('Y') }} Avaroa. Todos los derechos reservados. Bolivia.</p>
                 </div>
 
             </div>
