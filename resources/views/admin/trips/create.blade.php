@@ -166,6 +166,14 @@
 </div>
 @endsection
 
+@push('maps-script')
+@if(config('services.google.maps_key'))
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_key') }}&callback=initMap&libraries=places,marker&v=weekly">
+</script>
+@endif
+@endpush
+
 @push('scripts')
 <script>
 // Show/hide conditional fields

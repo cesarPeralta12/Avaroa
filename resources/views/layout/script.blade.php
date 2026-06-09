@@ -26,11 +26,10 @@
 
 
 {{-- =========================================================
-   GOOGLE MAPS (OPTIONAL)
+   GOOGLE MAPS — solo se carga en páginas que lo necesitan
+   (cada vista hace @push('maps-script') con el tag)
 ========================================================= --}}
-<script async defer
-src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&callback=initMap&libraries=places,marker&v=weekly">
-</script>
+@stack('maps-script')
 
 
 {{-- =========================================================
