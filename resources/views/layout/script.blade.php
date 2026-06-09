@@ -26,13 +26,6 @@
 
 
 {{-- =========================================================
-   GOOGLE MAPS — solo se carga en páginas que lo necesitan
-   (cada vista hace @push('maps-script') con el tag)
-========================================================= --}}
-@stack('maps-script')
-
-
-{{-- =========================================================
    SWEETALERT
 ========================================================= --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -133,3 +126,9 @@ document.addEventListener("DOMContentLoaded", function(){
    PAGE LEVEL SCRIPTS
 ========================================================= --}}
 @stack('scripts')
+
+{{-- =========================================================
+   GOOGLE MAPS — cargado AL FINAL para que initMap ya esté
+   definido cuando la API dispare el callback
+========================================================= --}}
+@stack('maps-script')

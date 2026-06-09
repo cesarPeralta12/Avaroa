@@ -25,16 +25,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install \
-    pdo_mysql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    gd \
-    zip \
-    opcache
+# Install PHP extensions — split into separate RUN steps to reduce peak
+# memory per layer and avoid OOM kills during compilation on low-RAM hosts.
+RUN docker-php-ext-install pdo_mysql mbstring bcmath exif pcntl
+RUN docker-php-ext-install zip opcache
+RUN docker-php-ext-install gd
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
