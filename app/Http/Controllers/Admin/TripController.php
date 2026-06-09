@@ -45,7 +45,7 @@ class TripController extends Controller
         $user_session = User::findOrFail(Session::get('LoggedIn'));
         $customers    = User::where('account_type', 'customer')->orderBy('name')->get();
         $drivers      = Driver::whereIn('status', ['available', 'online'])
-                              ->with(['user:id,name,whatsapp_number', 'vehicle:id,driver_id,model,plate_number,type'])
+                              ->with(['user:id,name,whatsapp_number', 'vehicles:id,driver_id,model,plate_number,type'])
                               ->get();
 
         return view('admin.trips.create', compact('customers', 'drivers', 'user_session'));

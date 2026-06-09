@@ -252,7 +252,7 @@
                                 @foreach($drivers as $driver)
                                 @php
                                     $u = $driver->user;
-                                    $v = $driver->vehicle;
+                                    $v = $driver->vehicles->first();
                                     $initial = strtoupper(substr($u->name ?? 'C', 0, 1));
                                 @endphp
                                 <div class="driver-option" id="driverOpt{{ $driver->id }}"
