@@ -236,6 +236,16 @@
                             </a>
                         </li>
 
+                        <!-- WhatsApp Bot (controllable via WHATSAPP_PANEL_ENABLED env var) -->
+                        @if(config('services.whatsapp_panel.enabled', true))
+                        <li class="sidebar-list {{ Request::routeIs('whatsapp.*') ? 'active' : '' }}">
+                            <a class="sidebar-link sidebar-title link-nav" href="{{ route('whatsapp.index') }}">
+                                <i class="fab fa-whatsapp" style="color:#25d366;"></i>&nbsp;&nbsp;&nbsp;
+                                <span>Bot WhatsApp</span>
+                            </a>
+                        </li>
+                        @endif
+
                         <!-- Manual Assignment -->
                         <!--<li-->
                         <!--    class="sidebar-list {{ Request::routeIs('admin.trips.manual-assignment') ? 'active' : '' }}">-->

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AboutUsController;
+use App\Http\Controllers\Admin\WhatsAppBotController;
 
 use App\Http\Controllers\Admin\Admin;
 
@@ -354,7 +355,16 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
         Route::get('/wallet-transactions', [WalletTransactionController::class, 'index'])->name('wallet-transactions.index');
         Route::get('/wallet-transactions/export', [WalletTransactionController::class, 'export'])->name('wallet-transactions.export');
 
-// Proof of Delivery Routes
+// WhatsApp Bot — conversaciones y mensajes
+        Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
+            Route::get('/',                      [WhatsAppBotController::class, 'index'])->name('index');
+            Route::get('/{id}',                  [WhatsAppBotController::class, 'show'])->name('show');
+            Route::post('/{id}/send',            [WhatsAppBotController::class, 'sendMessage'])->name('send');
+            Route::post('/{id}/toggle-escalate', [WhatsAppBotController::class, 'toggleEscalate'])->name('toggle-escalate');
+            Route::delete('/{id}',               [WhatsAppBotController::class, 'destroy'])->name('destroy');
+        });
+
+        // Proof of Delivery Routes
         Route::prefix('proof-of-delivery')->name('proof-of-delivery.')->group(function () {
             Route::get('/', [ProofOfDeliveryController::class, 'index'])->name('index');
             Route::get('/{id}', [ProofOfDeliveryController::class, 'show'])->name('show');

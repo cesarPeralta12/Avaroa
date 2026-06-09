@@ -19,23 +19,31 @@ use Illuminate\Support\Str;
 class TripController extends Controller
 {
     public function index()
-{
-    if (!Session::has('LoggedIn')) {
-        return redirect('Userlogin')->with('fail', 'Please login first.');
+    {
+        if (!Session::has('LoggedIn')) {
+            return redirect('Userlogin')->with('fail', 'Please login first.');
+        }
+
+        $user_session = User::findOrFail(Session::get('LoggedIn'));
+
+        $trips = Trip::with([
+            'customer:id,name',
+            'driver:id,user_id',
+            'driver.user:id,name,whatsapp_number,phone',
+            'driver.vehicles:id,driver_id,plate_number,type',
+            'quote',
+        ])->latest()->paginate(150);
+
+        $activeStatuses   = ['CONFIRMED','DISPATCHING','ASSIGNED','PICKUP','IN_TRIP'];
+        $stats = [
+            'total'     => Trip::count(),
+            'active'    => Trip::whereIn('status', $activeStatuses)->count(),
+            'completed' => Trip::where('status', 'COMPLETED')->whereDate('completed_at', today())->count(),
+            'cancelled'  => Trip::where('status', 'CANCELLED')->count(),
+        ];
+
+        return view('admin.trips.index', compact('trips', 'user_session', 'stats'));
     }
-
-    $user_session = User::findOrFail(Session::get('LoggedIn'));
-
-   $trips = Trip::with([
-    'customer:id,name',
-    'driver:id,user_id',
-    'driver.user:id,name,whatsapp_number',
-    'driver.vehicles:id,driver_id,plate_number,type',
-    'quote'
-])->latest()->paginate(150);
-
-    return view('admin.trips.index', compact('trips', 'user_session'));
-}
 
     public function create()
     {

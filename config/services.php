@@ -58,4 +58,10 @@ return [
     'google' => [
         'maps_key' => env('GOOGLE_MAPS_API_KEY', ''),
     ],
+
+    // WhatsApp Bot Admin Panel
+    // Set WHATSAPP_PANEL_ENABLED=false in .env (or Coolify env vars) to hide the panel
+    'whatsapp_panel' => [
+        'enabled' => env('WHATSAPP_PANEL_ENABLED', true),
+    ],
 ];
