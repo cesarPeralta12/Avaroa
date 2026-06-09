@@ -296,6 +296,17 @@ body:not(.dark) .ftab-all { border-color: #94a3b8; color: #64748b; }
 @endsection
 
 @section('main_content')
+@php
+// Fallback por si el controlador no pasa $stats (compatibilidad con versiones anteriores)
+if (!isset($stats)) {
+    $stats = [
+        'total'     => \App\Models\Trip::count(),
+        'active'    => \App\Models\Trip::whereIn('status', ['CONFIRMED','DISPATCHING','ASSIGNED','PICKUP','IN_TRIP'])->count(),
+        'completed' => \App\Models\Trip::where('status','COMPLETED')->whereDate('completed_at', today())->count(),
+        'cancelled'  => \App\Models\Trip::where('status','CANCELLED')->count(),
+    ];
+}
+@endphp
 <div class="page-content">
 <div class="container-fluid">
 
@@ -467,9 +478,11 @@ body:not(.dark) .ftab-all { border-color: #94a3b8; color: #64748b; }
                         $driverUser = $trip->driver?->user;
                         $vehicle    = $trip->driver?->vehicles?->first();
                         $avatarColors = ['#5c61f2','#f59e0b','#22c55e','#ef4444','#14b8a6','#ec4899'];
-                        $avatarBg = $avatarColors[abs(crc32($trip->customer?->name ?? 'x')) % count($avatarColors)];
-                        $originShort = Str::limit($trip->origin_address ?? $trip->origin_url ?? '—', 28);
-                        $destShort   = Str::limit($trip->destination_address ?? $trip->destination_url ?? '—', 28);
+                        $avatarBg = $avatarColors[abs(crc32($trip->customer?->name ?? 'x')) % 6];
+                        $_orig = $trip->origin_address ?? $trip->origin_url ?? '—';
+                        $originShort = mb_strlen($_orig) > 30 ? mb_substr($_orig, 0, 27) . '…' : $_orig;
+                        $_dest = $trip->destination_address ?? $trip->destination_url ?? '—';
+                        $destShort   = mb_strlen($_dest) > 30 ? mb_substr($_dest, 0, 27) . '…' : $_dest;
                         $price = $trip->price ?? $trip->estimated_fare ?? null;
                         $currency = strtoupper($trip->currency ?? 'BOB');
                     @endphp
@@ -550,7 +563,7 @@ body:not(.dark) .ftab-all { border-color: #94a3b8; color: #64748b; }
                                      data-bs-target="#driverModal{{ $trip->id }}">
                                     <div class="driver-av">{{ strtoupper(substr($driverUser->name, 0, 1)) }}</div>
                                     <div>
-                                        <div class="driver-name">{{ Str::limit($driverUser->name, 18) }}</div>
+                                        <div class="driver-name">{{ mb_strlen($driverUser->name) > 18 ? mb_substr($driverUser->name, 0, 16) . '…' : $driverUser->name }}</div>
                                         @if($vehicle)
                                             <span class="driver-plate">{{ $vehicle->plate_number }}</span>
                                         @endif

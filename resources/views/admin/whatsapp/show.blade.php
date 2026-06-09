@@ -318,7 +318,8 @@
             <div class="info-row">
               <span class="info-lbl">Origen</span>
               <span class="info-val" style="font-size:.8rem;">
-                {{ Str::limit($conversation->trip->origin_address ?? $conversation->trip->origin_url ?? '—', 40) }}
+                @php $_o = $conversation->trip->origin_address ?? $conversation->trip->origin_url ?? '—'; @endphp
+                {{ mb_strlen($_o) > 42 ? mb_substr($_o, 0, 39) . '…' : $_o }}
               </span>
             </div>
             <a href="{{ route('trips.index') }}" class="btn btn-sm btn-outline-primary w-100 mt-2">
