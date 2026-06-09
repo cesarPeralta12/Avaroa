@@ -298,8 +298,9 @@
 
 @push('maps-script')
 @if(config('services.google.maps_key'))
+{{-- Sin libraries=places — reemplazado por Nominatim (gratuito) --}}
 <script defer
-    src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_key') }}&callback=initMap&libraries=places,marker&v=weekly">
+    src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_key') }}&callback=initMap&v=weekly">
 </script>
 @endif
 @endpush

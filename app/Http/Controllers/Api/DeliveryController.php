@@ -212,8 +212,8 @@ class DeliveryController extends Controller
                 'weight' => $trip->weight,
                 'cargo_type' => $trip->cargo_type,
                 'estimated_duration' => $this->estimateDuration($trip->distance),
-                'estimated_fare' => (float) $trip->price,
-                'commission' => ceil(($trip->price ?? 0) * 0.15),
+                'estimated_fare' => (float) ($trip->price ?? $trip->estimated_fare ?? 0),
+                'commission' => ceil((($trip->price ?? $trip->estimated_fare ?? 0)) * 0.15),
                 'customer_note' => $trip->notes,
 
                 // CRITICAL FIX: Include service type and POD requirement

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Events\NewDeliveryRequest;
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
+use App\Models\DriverRequest;
 use App\Models\PricingQuote;
 use App\Models\Trip;
 use App\Models\User;
@@ -107,19 +108,36 @@ class TripController extends Controller
 
             DB::commit();
 
-            // ── Notificar al conductor ─────────────────────────────────────
+            // ── Crear DriverRequest + Notificar ───────────────────────────────
+            // DriverRequest es necesario para que /deliveries/available devuelva
+            // el viaje a la app móvil (además del push WebSocket).
             if ($driverId) {
-                // Asignación directa → notificar solo a ese conductor
-                $driver = Driver::find($driverId);
+                // Asignación directa → crear request para ese conductor
+                DriverRequest::create([
+                    'trip_id'   => $trip->id,
+                    'driver_id' => $driverId,
+                    'status'    => 'pending',
+                    'sent_at'   => now(),
+                ]);
+
                 try {
                     broadcast(new NewDeliveryRequest($trip->fresh(['customer']), [$driverId]));
                 } catch (\Exception $e) {
                     Log::warning('Broadcast directo falló: ' . $e->getMessage());
                 }
             } else {
-                // Sin conductor → broadcast a TODOS los conductores disponibles
+                // Sin conductor → crear request para CADA conductor disponible
                 $availableDriverIds = Driver::whereIn('status', ['available', 'online'])
                     ->pluck('id')->toArray();
+
+                foreach ($availableDriverIds as $dId) {
+                    DriverRequest::create([
+                        'trip_id'   => $trip->id,
+                        'driver_id' => $dId,
+                        'status'    => 'pending',
+                        'sent_at'   => now(),
+                    ]);
+                }
 
                 if (!empty($availableDriverIds)) {
                     try {
