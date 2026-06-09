@@ -383,9 +383,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">Lista de Viajes</h4>
-                    <!--<a href="{{ route('trips.create') }}" class="btn btn-success btn-sm">-->
-                    <!--    <i class="fas fa-plus"></i> Crear Orden-->
-                    <!--</a>-->
+                    <a href="{{ route('trips.create') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-1"></i> Crear Viaje
+                    </a>
                 </div>
                 <div class="card-body">
                     {{-- BULK DELETE --}}
