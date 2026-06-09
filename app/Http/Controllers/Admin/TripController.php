@@ -109,25 +109,18 @@ class TripController extends Controller
 
             DB::commit();
 
-            // ── Crear DriverRequest + Notificar ───────────────────────────────
-            // DriverRequest es necesario para que /deliveries/available devuelva
-            // el viaje a la app móvil (además del push WebSocket).
+            // ── 1. Crear DriverRequest (rápido, sólo DB) ──────────────────────
+            // Esto es síncrono: garantiza que /deliveries/available devuelva el
+            // viaje antes de que la app reciba cualquier push WebSocket.
             if ($driverId) {
-                // Asignación directa → crear request para ese conductor
                 DriverRequest::create([
                     'trip_id'   => $trip->id,
                     'driver_id' => $driverId,
                     'status'    => 'pending',
                     'sent_at'   => now(),
                 ]);
-
-                try {
-                    broadcast(new NewDeliveryRequest($trip->fresh(['customer']), [$driverId]));
-                } catch (\Exception $e) {
-                    Log::warning('Broadcast directo falló: ' . $e->getMessage());
-                }
+                $broadcastDriverIds = [$driverId];
             } else {
-                // Sin conductor → crear request para CADA conductor disponible
                 $availableDriverIds = Driver::whereIn('status', ['available', 'online'])
                     ->pluck('id')->toArray();
 
@@ -139,15 +132,26 @@ class TripController extends Controller
                         'sent_at'   => now(),
                     ]);
                 }
-
-                if (!empty($availableDriverIds)) {
-                    try {
-                        broadcast(new NewDeliveryRequest($trip->fresh(['customer']), $availableDriverIds));
-                    } catch (\Exception $e) {
-                        Log::warning('Broadcast general falló: ' . $e->getMessage());
-                    }
-                }
+                $broadcastDriverIds = $availableDriverIds;
             }
+
+            // ── 2. Broadcast DESPUÉS de enviar la respuesta HTTP ──────────────
+            // ShouldBroadcastNow conecta a Reverb síncronamente y puede tardar
+            // varios segundos. Al usar app()->terminating() el cliente recibe la
+            // respuesta de inmediato y el broadcast ocurre en el mismo proceso
+            // pero tras finalizar la petición HTTP (sin necesidad de queues).
+            $tripId   = $trip->id;
+            $driverIds = $broadcastDriverIds;
+            app()->terminating(function () use ($tripId, $driverIds) {
+                try {
+                    $freshTrip = Trip::with('customer')->find($tripId);
+                    if ($freshTrip && !empty($driverIds)) {
+                        broadcast(new NewDeliveryRequest($freshTrip, $driverIds));
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Broadcast (terminating) falló: ' . $e->getMessage());
+                }
+            });
 
             return response()->json([
                 'success'  => true,

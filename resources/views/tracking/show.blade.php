@@ -193,9 +193,10 @@
     {{-- CONDUCTOR --}}
     <div class="driver-card mb-3">
         @php
-            $driverName = $trip->driver?->user?->name ?? 'Conductor Avaroa';
-            $initial    = strtoupper(substr($driverName, 0, 1));
-            $photo      = $trip->driver?->user?->profile_photo;
+            $driverName    = $trip->driver?->user?->name ?? 'Conductor Avaroa';
+            $initial       = strtoupper(substr($driverName, 0, 1));
+            $photo         = $trip->driver?->user?->profile_photo;
+            $driverVehicle = $trip->driver?->vehicles?->first();
         @endphp
         <div class="driver-avatar">
             @if($photo)
@@ -209,8 +210,8 @@
             <div class="driver-name">{{ $driverName }}</div>
             <div class="driver-sub">
                 <i class="fas fa-car me-1"></i>
-                {{ $trip->driver?->vehicle?->model ?? 'Vehículo' }}
-                {{ $trip->driver?->vehicle?->plate_number ? '· '.$trip->driver->vehicle->plate_number : '' }}
+                {{ $driverVehicle?->model ?? 'Vehículo' }}
+                {{ $driverVehicle?->plate_number ? '· '.$driverVehicle->plate_number : '' }}
             </div>
             <div class="driver-sub mt-1" id="statusText">
                 <i class="fas fa-circle me-1" style="color:#22c55e; font-size:.6rem;"></i>

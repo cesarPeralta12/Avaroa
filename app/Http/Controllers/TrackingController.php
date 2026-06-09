@@ -20,7 +20,7 @@ class TrackingController extends Controller
     public function show(string $token): View|\Illuminate\Http\RedirectResponse
     {
         $trip = Trip::where('tracking_token', $token)
-            ->with(['driver.user', 'driver.vehicle'])
+            ->with(['driver.user', 'driver.vehicles'])
             ->first();
 
         if (!$trip) {

@@ -338,19 +338,34 @@ class DeliveryController extends Controller
 
         $trip->update($updateData);
 
-        // Send WhatsApp notification to customer based on new status
-        $this->sendCustomerStatusNotification($trip, $request->status, $driver);
+        // ── Notifications & broadcasts AFTER the HTTP response is sent ────────
+        // WhatsApp API calls can take 10–30 s. Broadcasts add another few seconds.
+        // app()->terminating() fires these AFTER $response->send() returns, so
+        // the app receives the JSON instantly and the UI updates without delay.
+        $statusVal    = $request->status;
+        $reasonVal    = $request->reason;
+        $prevSnap     = $previousStatus;
+        $tripSnapshot = $trip->fresh()->load('customer');
 
-        // Broadcast cancel separately
-        if ($request->status === 'cancelled') {
-            broadcast(new TripCancelled($trip, 'driver', $request->reason));
-        }
-
-        broadcast(new TripStatusChanged($trip, $previousStatus, []));
+        app()->terminating(function () use ($tripSnapshot, $statusVal, $reasonVal, $prevSnap, $driver) {
+            try {
+                $this->sendCustomerStatusNotification($tripSnapshot, $statusVal, $driver);
+            } catch (\Exception $e) {
+                Log::error('updateStatus WA failed: ' . $e->getMessage());
+            }
+            try {
+                if ($statusVal === 'cancelled') {
+                    broadcast(new TripCancelled($tripSnapshot, 'driver', $reasonVal));
+                }
+                broadcast(new TripStatusChanged($tripSnapshot, $prevSnap, []));
+            } catch (\Exception $e) {
+                Log::error('updateStatus broadcast failed: ' . $e->getMessage());
+            }
+        });
 
         return response()->json([
             'success' => true,
-            'trip' => $trip->fresh(),
+            'trip'    => $tripSnapshot,
         ]);
     }
 
