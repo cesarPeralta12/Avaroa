@@ -115,6 +115,10 @@ class Admin extends Controller
             return back()->with('fail', 'Password does not match');
         }
 
+        if (!$user->is_super_admin) {
+            return back()->with('fail', 'No tienes permisos para acceder al panel de administración.');
+        }
+
         // ✅ IMPORTANT (THIS FIXES user_id in sessions)
         Auth::login($user);
 
@@ -910,6 +914,11 @@ class Admin extends Controller
     // Si el usuario no existe, manda al login
     if (!$user) {
         return redirect('admin/login');
+    }
+
+    if (!$user->is_super_admin) {
+        Session::forget('LoggedIn');
+        return redirect('admin/login')->with('fail', 'No tienes permisos de administrador.');
     }
 
     // Verifica la contraseña correctamente con Hash
