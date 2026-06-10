@@ -27,8 +27,20 @@ class FileUploadService
             Log::info('Created directory: ' . $destination);
         }
 
-        // Generate unique filename
+        // Generate unique filename — fall back to MIME-based ext if client sent none
         $extension = $file->getClientOriginalExtension();
+        if (empty($extension)) {
+            $mimeToExt = [
+                'image/jpeg' => 'jpg',
+                'image/png'  => 'png',
+                'image/gif'  => 'gif',
+                'image/webp' => 'webp',
+                'image/heic' => 'jpg',
+                'application/pdf' => 'pdf',
+            ];
+            $extension = $mimeToExt[$file->getMimeType()] ?? 'jpg';
+            Log::warning('No client extension, detected: ' . $extension . ' from MIME: ' . $file->getMimeType());
+        }
         $filename = time() . '-' . Str::random(10) . '.' . $extension;
         
         Log::info('Filename: ' . $filename);
