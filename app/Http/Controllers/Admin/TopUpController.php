@@ -96,10 +96,13 @@ class TopUpController extends Controller
 
             // Credit wallet
             $wallet = $topUpRequest->wallet;
-            $wallet->credit($topUpRequest->amount, 'topup');
+            if (!$wallet) {
+                throw new \Exception('Wallet not found for this top-up request');
+            }
+            $transaction = $wallet->credit($topUpRequest->amount, 'topup');
 
-            // Update transaction with reference
-            $wallet->transactions()->latest()->first()->update([
+            // Update transaction with reference (use returned object, not latest())
+            $transaction->update([
                 'created_by_admin_id' => $user_session->id,
                 'reference_type' => 'topup',
                 'reference_id' => $topUpRequest->id,

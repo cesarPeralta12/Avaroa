@@ -543,20 +543,16 @@ class DeliveryController extends Controller
 
             if ($commissionAmount > 0) {
                 $newBalance = $wallet->balance - $commissionAmount;
+                $clampedBalance = max($newBalance, 0);
 
-                $wallet->update([
-                    'balance' => max($newBalance, 0),
-                ]);
+                $wallet->update(['balance' => $clampedBalance]);
 
-                \App\Models\WalletTransaction::create([
-                    'wallet_id' => $wallet->id,
+                $wallet->transactions()->create([
                     'type' => 'commission',
                     'amount' => $commissionAmount,
                     'direction' => 'DEBIT',
                     'reference_type' => 'trip',
                     'reference_id' => $trip->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
 
                 // Block driver if balance depleted
@@ -689,20 +685,16 @@ class DeliveryController extends Controller
 
             if ($commissionAmount > 0) {
                 $newBalance = $wallet->balance - $commissionAmount;
+                $clampedBalance = max($newBalance, 0);
 
-                $wallet->update([
-                    'balance' => max($newBalance, 0),
-                ]);
+                $wallet->update(['balance' => $clampedBalance]);
 
-                \App\Models\WalletTransaction::create([
-                    'wallet_id' => $wallet->id,
+                $wallet->transactions()->create([
                     'type' => 'commission',
                     'amount' => $commissionAmount,
                     'direction' => 'DEBIT',
                     'reference_type' => 'trip',
                     'reference_id' => $trip->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
 
                 if ($newBalance <= 0) {

@@ -104,7 +104,8 @@ class WhatsAppWebhookController extends Controller
         try {
             $result = $this->whatsappService->processMessage($messageData);
 
-            return response()->json($result);
+            $decoded = is_string($result) ? json_decode($result, true) : $result;
+            return response()->json($decoded ?? ['status' => 'ok']);
         } catch (\Throwable $e) {
             Log::error('Error processing message', [
                 'error' => $e->getMessage()
