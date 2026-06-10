@@ -139,7 +139,7 @@
                         <label for="select-all" class="mb-0 text-muted small">Seleccionar Todo</label>
                     </div>
                     <button id="bulk-delete-btn" class="btn btn-outline-danger btn-sm" disabled>
-                        <i class="fas fa-trash-alt me-1"></i>Eliminar Seleccionados
+                        <i class="fas fa-user-slash me-1"></i>Deshabilitar Seleccionados
                     </button>
                 </div>
 
@@ -163,8 +163,9 @@
                                     $vehicle = $driver->vehicle;
                                     $docsCount = $driver->documents->count();
                                     $verifiedDocs = $driver->documents->where('status', 'verified')->count();
+                                    $isDisabled = !($driver->user?->is_active ?? true);
                                 @endphp
-                                <tr>
+                                <tr class="{{ $isDisabled ? 'opacity-50' : '' }}" style="{{ $isDisabled ? 'filter: grayscale(0.4)' : '' }}">
                                     <td>
                                         <input type="checkbox" class="row-checkbox form-check-input" value="{{ $driver->id }}">
                                     </td>
@@ -183,7 +184,12 @@
                                                 @endif
                                             </div>
                                             <div class="flex-grow-1 ms-3">
-                                                <h6 class="mb-1 fw-bold">{{ $driver->user?->name ?? 'N/A' }}</h6>
+                                                <h6 class="mb-1 fw-bold">
+                                                    {{ $driver->user?->name ?? 'N/A' }}
+                                                    @if($isDisabled)
+                                                        <span class="badge bg-danger ms-1" style="font-size:.65rem;">Deshabilitado</span>
+                                                    @endif
+                                                </h6>
                                                 <p class="mb-0 text-muted small">
                                                     <i class="fas fa-envelope me-1"></i>{{ $driver->user?->email ?? 'N/A' }}
                                                 </p>
@@ -274,10 +280,23 @@
                                                class="btn btn-sm btn-outline-primary" title="Ver Detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ajax"
-                                                    data-url="{{ route('drivers.destroy', $driver) }}" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            @if($isDisabled)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-success btn-reactivar"
+                                                        data-url="{{ route('drivers.suspend', $driver->id) }}"
+                                                        data-name="{{ $driver->user?->name ?? 'este conductor' }}"
+                                                        title="Reactivar conductor">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                            @else
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger btn-deshabilitar"
+                                                        data-url="{{ route('drivers.destroy', $driver) }}"
+                                                        data-name="{{ $driver->user?->name ?? 'este conductor' }}"
+                                                        title="Deshabilitar conductor">
+                                                    <i class="fas fa-user-slash"></i>
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -334,21 +353,21 @@ $(function(){
     function toggleBulkBtn(){
         const count = $('.row-checkbox:checked').length;
         $('#bulk-delete-btn').prop('disabled', count === 0)
-            .text(`Eliminar Seleccionados (${count})`);
+            .html(`<i class="fas fa-user-slash me-1"></i>Deshabilitar Seleccionados (${count})`);
     }
 
-    // Bulk Delete
+    // Bulk Deshabilitar
     $('#bulk-delete-btn').on('click', function(){
         const ids = $('.row-checkbox:checked').map(function(){ return $(this).val(); }).get();
         if(!ids.length) return;
 
         Swal.fire({
-            title: '¿Eliminar conductores seleccionados?',
-            text: `Estás a punto de eliminar ${ids.length} conductor(es). Esta acción no se puede deshacer.`,
+            title: `¿Deshabilitar ${ids.length} conductor(es)?`,
+            html: `Los conductores <strong>no podrán acceder a la app</strong>, pero sus datos, documentos y vehículos se conservan en la base de datos.<br><br>Puedes reactivarlos en cualquier momento desde este panel.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar',
+            confirmButtonText: 'Sí, deshabilitar',
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if(result.isConfirmed){
@@ -357,10 +376,10 @@ $(function(){
                     _token: "{{ csrf_token() }}"
                 }).done(function(r){
                     if(r.success){
-                        Swal.fire('¡Eliminado!', 'Los conductores han sido eliminados.', 'success')
+                        Swal.fire('Deshabilitados', 'Los conductores han sido deshabilitados.', 'success')
                             .then(() => location.reload());
                     }else{
-                        Swal.fire('Error', r.message || 'Error al eliminar', 'error');
+                        Swal.fire('Error', r.message || 'Error al deshabilitar', 'error');
                     }
                 }).fail(() => {
                     Swal.fire('Error', 'Ocurrió un error en el servidor', 'error');
@@ -369,18 +388,20 @@ $(function(){
         });
     });
 
-    // Individual Delete
-    $(document).on('click', '.btn-delete-ajax', function(){
+    // Individual Deshabilitar
+    $(document).on('click', '.btn-deshabilitar', function(){
         const url = $(this).data('url');
+        const name = $(this).data('name');
         const row = $(this).closest('tr');
 
         Swal.fire({
-            title: '¿Eliminar este conductor?',
-            text: "¡Esta acción no se puede deshacer!",
+            title: `¿Deshabilitar a ${name}?`,
+            html: `El conductor <strong>no podrá acceder a la app</strong>.<br><br>Sus datos, documentos y vehículos se conservan en la base de datos. Puedes reactivarlo en cualquier momento con el botón <strong>Reactivar</strong>.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar'
+            confirmButtonText: 'Sí, deshabilitar',
+            cancelButtonText: 'Cancelar'
         }).then((result) => {
             if(result.isConfirmed){
                 $.ajax({
@@ -389,14 +410,43 @@ $(function(){
                     data: {_token: "{{ csrf_token() }}"},
                     success: function(r){
                         if(r.success){
-                            row.fadeOut(300, function(){ $(this).remove(); });
-                            Swal.fire('¡Eliminado!', 'El conductor ha sido eliminado.', 'success');
+                            Swal.fire('Deshabilitado', `${name} ha sido deshabilitado.`, 'success')
+                                .then(() => location.reload());
                         }
                     },
                     error: function(){
-                        Swal.fire('Error', 'No se pudo eliminar el conductor', 'error');
+                        Swal.fire('Error', 'No se pudo deshabilitar el conductor', 'error');
                     }
                 });
+            }
+        });
+    });
+
+    // Reactivar
+    $(document).on('click', '.btn-reactivar', function(){
+        const url = $(this).data('url');
+        const name = $(this).data('name');
+
+        Swal.fire({
+            title: `¿Reactivar a ${name}?`,
+            text: 'El conductor podrá volver a iniciar sesión en la app.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            confirmButtonText: 'Sí, reactivar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if(result.isConfirmed){
+                $.post(url, {_token: "{{ csrf_token() }}"})
+                    .done(function(r){
+                        if(r.success){
+                            Swal.fire('Reactivado', `${name} puede volver a usar la app.`, 'success')
+                                .then(() => location.reload());
+                        }
+                    })
+                    .fail(function(){
+                        Swal.fire('Error', 'No se pudo reactivar el conductor', 'error');
+                    });
             }
         });
     });

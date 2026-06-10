@@ -220,20 +220,10 @@ class DriverController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
-        // Delete associated documents using FileUploadService
-        foreach ($driver->documents as $document) {
-            $this->fileUpload->delete($document->file_path);
-            $document->delete();
-        }
+        $driver->update(['status' => 'offline']);
+        $driver->user?->update(['is_active' => false]);
 
-        // Delete associated vehicles
-        foreach ($driver->vehicles as $vehicle) {
-            $vehicle->delete();
-        }
-
-        $driver->delete();
-
-        return response()->json(['success' => true, 'message' => 'Driver deleted']);
+        return response()->json(['success' => true, 'message' => 'Conductor deshabilitado']);
     }
 
     /**
@@ -250,16 +240,12 @@ class DriverController extends Controller
         foreach ($ids as $id) {
             $driver = Driver::find($id);
             if ($driver) {
-                // Delete documents using FileUploadService
-                foreach ($driver->documents as $document) {
-                    $this->fileUpload->delete($document->file_path);
-                    $document->delete();
-                }
-                $driver->delete();
+                $driver->update(['status' => 'offline']);
+                $driver->user?->update(['is_active' => false]);
             }
         }
 
-        return response()->json(['success' => true, 'message' => 'Selected drivers deleted']);
+        return response()->json(['success' => true, 'message' => 'Conductores deshabilitados']);
     }
 
     public function verifyDriver(Request $request, $id)
