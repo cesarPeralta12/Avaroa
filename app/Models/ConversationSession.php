@@ -14,6 +14,7 @@ class ConversationSession extends Model
         'flow_type',
         'language',
         'state',
+        'data',
         'missing_data',
         'trip_id',
         'last_message_at',
