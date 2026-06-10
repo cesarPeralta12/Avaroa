@@ -279,14 +279,15 @@ private function normalizarTipoVehiculo(?string $tipoRaw): string
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|string|max:255',
             'phone' => 'sometimes|string|max:20|unique:users,whatsapp_number,' . $request->user()->id,
-            'photo' => 'sometimes|image|mimes:jpg,jpeg,png|max:5120', // 5MB max
+            'photo' => 'sometimes|image|mimes:jpg,jpeg,png,webp,heic|max:5120',
         ]);
 
         if ($validator->fails()) {
             \Log::error('Validation failed: ' . json_encode($validator->errors()));
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors(),
+                'message' => $validator->errors()->first(),
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
