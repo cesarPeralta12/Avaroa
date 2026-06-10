@@ -18,13 +18,13 @@ class DriverAssignmentService
 {
     protected MetaWhatsAppService $metaWhatsApp;
 
-    protected array $yesKeywords = ['si', 's\u00ed', 'yes', 'yep', 'yeah', 'sip', 'ok', 'vale', 'claro', 'acepto', 'aceptar', 'confirmo', 'confirmar', 'dale', 'bueno', 'listo'];
+    protected array $yesKeywords = ['si', 'sí', 'yes', 'yep', 'yeah', 'sip', 'ok', 'vale', 'claro', 'acepto', 'aceptar', 'confirmo', 'confirmar', 'dale', 'bueno', 'listo'];
     protected array $noKeywords = ['no', 'nope', 'nah', 'reject', 'busy', 'ocupado', 'rechazar', 'rechazo', 'no gracias', 'paso', 'cancelar'];
     protected array $leaveKeywords = ['leave', 'left', 'on my way', 'omw', 'salgo', 'voy', 'camino', 'en camino', 'saliendo', 'ya voy'];
-    protected array $arrivedKeywords = ['arrived', 'arrive', 'llegue', 'llegu\u00e9', 'llegada', 'estoy aqui', 'estoy aqu\u00ed', 'ya llegue', 'ya llegu\u00e9', 'estoy en el lugar'];
-    protected array $startKeywords = ['start', 'begin', 'go', 'started', 'comenzar', 'iniciar', 'empezar', 'comence', 'inicie', 'recogido', 'recog\u00ed', 'tengo el paquete', 'paquete recogido'];
+    protected array $arrivedKeywords = ['arrived', 'arrive', 'llegue', 'llegué', 'llegada', 'estoy aqui', 'estoy aquí', 'ya llegue', 'ya llegué', 'estoy en el lugar'];
+    protected array $startKeywords = ['start', 'begin', 'go', 'started', 'comenzar', 'iniciar', 'empezar', 'comence', 'inicie', 'recogido', 'recogí', 'tengo el paquete', 'paquete recogido'];
     protected array $completeKeywords = ['complete', 'done', 'finished', 'end', 'completar', 'terminar', 'finalizar', 'completado', 'terminado', 'listo', 'entregado', 'entregar'];
-    protected array $finishTripKeywords = ['finish', 'finalizar viaje', 'terminar viaje', 'viaje terminado', 'viaje finalizado', 'llegue destino', 'llegu\u00e9 destino'];
+    protected array $finishTripKeywords = ['finish', 'finalizar viaje', 'terminar viaje', 'viaje terminado', 'viaje finalizado', 'llegue destino', 'llegué destino'];
 
     /**
      * CRITICAL FIX: Base type mapping unifies customer categories with driver subtypes.
@@ -32,9 +32,9 @@ class DriverAssignmentService
      */
     protected array $baseVehicleTypeMap = [
         'moto'        => ['moto', 'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi'],
-        'automovil'   => ['automovil', 'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla', 'carro', 'sedan', 'sed\u00e1n'],
-        'minivan'     => ['minivan', 'vagoneta', 'van', 'furgon', 'furg\u00f3n', 'suv'],
-        'camioneta'   => ['camioneta', 'camion', 'cami\u00f3n', 'truck', 'pickup', 'pick up', 'torito'],
+        'automovil'   => ['automovil', 'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla', 'carro', 'sedan', 'sedán'],
+        'minivan'     => ['minivan', 'vagoneta', 'van', 'furgon', 'furgón', 'suv'],
+        'camioneta'   => ['camioneta', 'camion', 'camión', 'truck', 'pickup', 'pick up', 'torito'],
         'torito'      => ['torito', 'motocarro', 'triciclo'],
         'bicicleta'   => ['bicicleta', 'bici', 'bike', 'bicycle'],
     ];
@@ -45,17 +45,17 @@ class DriverAssignmentService
         'moto_veloz' => 'Moto Veloz',
         'moto_socorro' => 'Moto Socorro',
         'moto_taxi' => 'Moto Taxi',
-        'automovil' => 'Autom\u00f3vil',
-        'movil' => 'M\u00f3vil',
-        'movil_vagoneta' => 'M\u00f3vil Vagoneta',
-        'movil_ipsum' => 'M\u00f3vil Ipsum',
-        'movil_parrilla' => 'M\u00f3vil Parrilla',
+        'automovil' => 'Automóvil',
+        'movil' => 'Móvil',
+        'movil_vagoneta' => 'Móvil Vagoneta',
+        'movil_ipsum' => 'Móvil Ipsum',
+        'movil_parrilla' => 'Móvil Parrilla',
         'minivan' => 'Minivan',
         'vagoneta' => 'Vagoneta',
         'van' => 'Van',
         'camioneta' => 'Camioneta',
-        'camion' => 'Cami\u00f3n',
-        'cami\u00f3n' => 'Cami\u00f3n',
+        'camion' => 'Camión',
+        'camión' => 'Camión',
         'truck' => 'Truck',
         'pickup' => 'Pickup',
         'pick up' => 'Pick Up',
@@ -161,21 +161,21 @@ class DriverAssignmentService
         $isTaxiService = $trip && !$this->serviceRequiresPod($trip);
 
         if ($isTaxiService) {
-            $message = "\ud83d\udce2 *Comandos Disponibles - Servicio de Pasajeros*\n\n" .
-                "\u2705 *Aceptar:* SI, S\u00cd, OK, ACEPTO, CONFIRMO\n\n" .
-                "\u274c *Rechazar:* NO, RECHAZAR, OCUPADO, CANCELAR\n\n" .
-                "\ud83d\ude9a *En Camino:* SALGO, VOY, EN CAMINO\n\n" .
-                "\ud83d\udccd *Llegu\u00e9:* LLEGUE, LLEGU\u00c9, YA LLEGUE, ESTOY AQUI\n\n" .
-                "\ud83d\ude8a *Iniciar:* COMENZAR, INICIAR, RECOGIDO\n\n" .
-                "\ud83c\udfc1 *Finalizar Viaje:* FINISH, TERMINAR VIAJE, VIAJE TERMINADO";
+            $message = "📢 *Comandos Disponibles - Servicio de Pasajeros*\n\n" .
+                "✅ *Aceptar:* SI, SÍ, OK, ACEPTO, CONFIRMO\n\n" .
+                "❌ *Rechazar:* NO, RECHAZAR, OCUPADO, CANCELAR\n\n" .
+                "🚚 *En Camino:* SALGO, VOY, EN CAMINO\n\n" .
+                "📍 *Llegué:* LLEGUE, LLEGUÉ, YA LLEGUE, ESTOY AQUI\n\n" .
+                "🚊 *Iniciar:* COMENZAR, INICIAR, RECOGIDO\n\n" .
+                "🏁 *Finalizar Viaje:* FINISH, TERMINAR VIAJE, VIAJE TERMINADO";
         } else {
-            $message = "\ud83d\udce2 *Comandos Disponibles*\n\n" .
-                "\u2705 *Aceptar:* SI, S\u00cd, OK, ACEPTO, CONFIRMO\n\n" .
-                "\u274c *Rechazar:* NO, RECHAZAR, OCUPADO, CANCELAR\n\n" .
-                "\ud83d\ude9a *En Camino:* SALGO, VOY, EN CAMINO\n\n" .
-                "\ud83d\udccd *Llegu\u00e9:* LLEGUE, LLEGU\u00c9, YA LLEGUE, ESTOY AQUI\n\n" .
-                "\ud83d\ude80 *Iniciar:* COMENZAR, INICIAR, RECOGIDO\n\n" .
-                "\ud83c\udfc1 *Completar:* COMPLETAR, TERMINAR, ENTREGADO, LISTO";
+            $message = "📢 *Comandos Disponibles*\n\n" .
+                "✅ *Aceptar:* SI, SÍ, OK, ACEPTO, CONFIRMO\n\n" .
+                "❌ *Rechazar:* NO, RECHAZAR, OCUPADO, CANCELAR\n\n" .
+                "🚚 *En Camino:* SALGO, VOY, EN CAMINO\n\n" .
+                "📍 *Llegué:* LLEGUE, LLEGUÉ, YA LLEGUE, ESTOY AQUI\n\n" .
+                "🚀 *Iniciar:* COMENZAR, INICIAR, RECOGIDO\n\n" .
+                "🏁 *Completar:* COMPLETAR, TERMINAR, ENTREGADO, LISTO";
         }
 
         $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
@@ -275,9 +275,9 @@ class DriverAssignmentService
 
             $trip->update(['status' => 'no_drivers']);
 
-            $message = "\u274c *No hay mensajeros disponibles*\n\n" .
+            $message = "❌ *No hay mensajeros disponibles*\n\n" .
                 "Lo sentimos, no hay mensajeros con *{$vehicleLabel}* disponibles en este momento.\n\n" .
-                "Escribe *REINICIAR* para intentar con otro tipo de veh\u00edculo.";
+                "Escribe *REINICIAR* para intentar con otro tipo de vehículo.";
 
             if ($trip->customer && $trip->customer->whatsapp_number) {
                 $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
@@ -354,9 +354,9 @@ class DriverAssignmentService
         $vehicleType = $trip->vehicle_type;
         $vehicleLabel = $this->vehicleLabels[$vehicleType] ?? $vehicleType;
 
-        $message = "\u274c *No hay mensajeros disponibles*\n\n" .
-            "Lo sentimos, ning\u00fan mensajero con *{$vehicleLabel}* acept\u00f3 tu solicitud en los \u00faltimos 5 minutos.\n\n" .
-            "Escribe *REINICIAR* para intentar con otro tipo de veh\u00edculo.";
+        $message = "❌ *No hay mensajeros disponibles*\n\n" .
+            "Lo sentimos, ningún mensajero con *{$vehicleLabel}* aceptó tu solicitud en los últimos 5 minutos.\n\n" .
+            "Escribe *REINICIAR* para intentar con otro tipo de vehículo.";
 
         if ($trip->customer && $trip->customer->whatsapp_number) {
             $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
@@ -390,7 +390,7 @@ class DriverAssignmentService
 
             $vehicleInfo = $matchingVehicle
                 ? $this->formatVehicleForDisplay($matchingVehicle)
-                : "\ud83d\ude97 " . ucfirst($trip->vehicle_type) . " - Placa: N/A";
+                : "🚗 " . ucfirst($trip->vehicle_type) . " - Placa: N/A";
 
             $serviceType = $trip->service_type ?? 'delivery';
             $requiresPod = $this->serviceRequiresPod($trip);
@@ -458,15 +458,15 @@ class DriverAssignmentService
             ? "Responde ENTREGADO cuando completes la entrega."
             : "Responde FINISH cuando termines el viaje.";
 
-        return "\ud83d\udce2 NUEVA SOLICITUD - {$serviceLabel}\n" .
-            "\ud83d\udc64 Cliente: " . ($customer->name ?? 'Cliente') . "\n" .
+        return "📢 NUEVA SOLICITUD - {$serviceLabel}\n" .
+            "👤 Cliente: " . ($customer->name ?? 'Cliente') . "\n" .
             "{$vehicleInfo}\n" .
-            "\ud83d\ude9a Servicio: {$serviceLabel}\n\n" .
-            "\ud83d\udccd Recogida:\n" . $pickup . "\n\n" .
-            "\ud83c\udfc1 Destino:\n" . $destination . "\n\n" .
-            "\ud83d\udcb0 Costo: " . $priceFormatted . "\n" .
-            "\ud83d\udcdd Instrucciones: {$instructions}\n\n" .
-            "Responde S\u00cd para aceptar\n" .
+            "🚚 Servicio: {$serviceLabel}\n\n" .
+            "📍 Recogida:\n" . $pickup . "\n\n" .
+            "🏁 Destino:\n" . $destination . "\n\n" .
+            "💰 Costo: " . $priceFormatted . "\n" .
+            "📝 Instrucciones: {$instructions}\n\n" .
+            "Responde SÍ para aceptar\n" .
             "Responde NO para rechazar\n\n" .
             $completionNote;
     }
@@ -487,8 +487,8 @@ class DriverAssignmentService
 
                 $this->metaWhatsApp->sendMessage(
                     $driver->user->whatsapp_number,
-                    "\u274c No se encontraron solicitudes pendientes activas.\n\n" .
-                        "Es posible que la entrega ya fue asignada a otro mensajero o expir\u00f3 (tienes 5 minutos para aceptar)."
+                    "❌ No se encontraron solicitudes pendientes activas.\n\n" .
+                        "Es posible que la entrega ya fue asignada a otro mensajero o expiró (tienes 5 minutos para aceptar)."
                 );
 
                 return ['status' => 'error', 'message' => 'No pending request'];
@@ -506,7 +506,7 @@ class DriverAssignmentService
 
                 $this->metaWhatsApp->sendMessage(
                     $driver->user->whatsapp_number,
-                    "\u274c Esta entrega ya fue asignada a otro mensajero o fue cancelada."
+                    "❌ Esta entrega ya fue asignada a otro mensajero o fue cancelada."
                 );
 
                 return ['status' => 'error', 'message' => 'Delivery no longer available'];
@@ -527,8 +527,8 @@ class DriverAssignmentService
 
                 $this->metaWhatsApp->sendMessage(
                     $driver->user->whatsapp_number,
-                    "\u274c No puedes aceptar esta entrega.\n\n" .
-                        "No tienes un veh\u00edculo tipo *" . ($this->vehicleLabels[$trip->vehicle_type] ?? $trip->vehicle_type) . "* activo."
+                    "❌ No puedes aceptar esta entrega.\n\n" .
+                        "No tienes un vehículo tipo *" . ($this->vehicleLabels[$trip->vehicle_type] ?? $trip->vehicle_type) . "* activo."
                 );
 
                 return ['status' => 'error', 'message' => 'No matching vehicle'];
@@ -581,30 +581,30 @@ class DriverAssignmentService
             $requiresPod = $this->serviceRequiresPod($trip);
 
             if ($requiresPod) {
-                $message = "\u2705 \u00a1ENTREGA ASIGNADA!\n\n" .
-                    "\ud83d\udc64 Cliente: " . ($trip->customer->name ?? 'Cliente') . "\n" .
-                    "\ud83d\udcde Tel\u00e9fono: " . ($trip->customer->whatsapp_number ?? 'N/A') . "\n" .
-                    "\ud83d\udccd Recogida: " . ($trip->origin_url ?? 'No especificado') . "\n" .
-                    "\ud83d\udcb0 Precio: " . $priceFormatted . "\n" .
+                $message = "✅ ¡ENTREGA ASIGNADA!\n\n" .
+                    "👤 Cliente: " . ($trip->customer->name ?? 'Cliente') . "\n" .
+                    "📞 Teléfono: " . ($trip->customer->whatsapp_number ?? 'N/A') . "\n" .
+                    "📍 Recogida: " . ($trip->origin_url ?? 'No especificado') . "\n" .
+                    "💰 Precio: " . $priceFormatted . "\n" .
                     "{$vehicleDisplay}\n\n" .
-                    "\ud83d\udce2 Comandos disponibles:\n" .
-                    "\u2022 SALGO - En camino a recogida\n" .
-                    "\u2022 LLEGU\u00c9 - En ubicaci\u00f3n de recogida\n" .
-                    "\u2022 RECOGIDO - Paquete recogido\n" .
-                    "\u2022 ENTREGADO - Entrega finalizada";
+                    "📢 Comandos disponibles:\n" .
+                    "• SALGO - En camino a recogida\n" .
+                    "• LLEGUÉ - En ubicación de recogida\n" .
+                    "• RECOGIDO - Paquete recogido\n" .
+                    "• ENTREGADO - Entrega finalizada";
             } else {
-                $message = "\u2705 \u00a1VIAJE ASIGNADO!\n\n" .
-                    "\ud83d\udc64 Cliente: " . ($trip->customer->name ?? 'Cliente') . "\n" .
-                    "\ud83d\udcde Tel\u00e9fono: " . ($trip->customer->whatsapp_number ?? 'N/A') . "\n" .
-                    "\ud83d\udccd Recogida: " . ($trip->origin_url ?? 'No especificado') . "\n" .
-                    "\ud83c\udfc1 Destino: " . ($trip->destination_url ?? 'No especificado') . "\n" .
-                    "\ud83d\udcb0 Precio: " . $priceFormatted . "\n" .
+                $message = "✅ ¡VIAJE ASIGNADO!\n\n" .
+                    "👤 Cliente: " . ($trip->customer->name ?? 'Cliente') . "\n" .
+                    "📞 Teléfono: " . ($trip->customer->whatsapp_number ?? 'N/A') . "\n" .
+                    "📍 Recogida: " . ($trip->origin_url ?? 'No especificado') . "\n" .
+                    "🏁 Destino: " . ($trip->destination_url ?? 'No especificado') . "\n" .
+                    "💰 Precio: " . $priceFormatted . "\n" .
                     "{$vehicleDisplay}\n\n" .
-                    "\ud83d\udce2 Comandos disponibles:\n" .
-                    "\u2022 SALGO - En camino a recogida\n" .
-                    "\u2022 LLEGU\u00c9 - En ubicaci\u00f3n de recogida\n" .
-                    "\u2022 RECOGIDO - Pasajero recogido\n" .
-                    "\u2022 FINISH - Finalizar viaje";
+                    "📢 Comandos disponibles:\n" .
+                    "• SALGO - En camino a recogida\n" .
+                    "• LLEGUÉ - En ubicación de recogida\n" .
+                    "• RECOGIDO - Pasajero recogido\n" .
+                    "• FINISH - Finalizar viaje";
             }
 
             $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
@@ -633,7 +633,7 @@ class DriverAssignmentService
         if (!$trip) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u274c No se encontr\u00f3 una entrega asignada activa.\n\n" .
+                "❌ No se encontró una entrega asignada activa.\n\n" .
                     "Primero debes aceptar una entrega."
             );
             return ['status' => 'error', 'message' => 'No assigned delivery found'];
@@ -643,8 +643,8 @@ class DriverAssignmentService
 
         $this->metaWhatsApp->sendMessage(
             $driver->user->whatsapp_number,
-            "\u2705 Estado actualizado: En camino a la recogida \ud83d\ude9a\n\n" .
-                "Responde LLEGU\u00c9 cuando llegues a la ubicaci\u00f3n de recogida."
+            "✅ Estado actualizado: En camino a la recogida 🚚\n\n" .
+                "Responde LLEGUÉ cuando llegues a la ubicación de recogida."
         );
 
         return ['status' => 'success', 'message' => 'Courier en route'];
@@ -671,8 +671,8 @@ class DriverAssignmentService
 
         $this->metaWhatsApp->sendMessage(
             $driver->user->whatsapp_number,
-            "\u274c Solicitud rechazada.\n\n" .
-                "Esperando la pr\u00f3xima oportunidad..."
+            "❌ Solicitud rechazada.\n\n" .
+                "Esperando la próxima oportunidad..."
         );
 
         return ['status' => 'success', 'message' => 'Request rejected'];
@@ -688,7 +688,7 @@ class DriverAssignmentService
         if (!$trip) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u274c No se encontr\u00f3 una entrega activa."
+                "❌ No se encontró una entrega activa."
             );
             return ['status' => 'error', 'message' => 'No active delivery found'];
         }
@@ -698,11 +698,11 @@ class DriverAssignmentService
         $requiresPod = $this->serviceRequiresPod($trip);
 
         if ($requiresPod) {
-            $message = "\u2705 Llegada confirmada.\n\n" .
+            $message = "✅ Llegada confirmada.\n\n" .
                 "Esperando al cliente...\n\n" .
                 "Responde RECOGIDO cuando tengas el paquete.";
         } else {
-            $message = "\u2705 Llegada confirmada.\n\n" .
+            $message = "✅ Llegada confirmada.\n\n" .
                 "Esperando al pasajero...\n\n" .
                 "Responde RECOGIDO cuando el pasajero suba.";
         }
@@ -722,7 +722,7 @@ class DriverAssignmentService
         if (!$trip) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u274c No se encontr\u00f3 una entrega activa para iniciar."
+                "❌ No se encontró una entrega activa para iniciar."
             );
             return ['status' => 'error', 'message' => 'No active delivery found'];
         }
@@ -732,11 +732,11 @@ class DriverAssignmentService
         $requiresPod = $this->serviceRequiresPod($trip);
 
         if ($requiresPod) {
-            $message = "\u2705 \u00a1Entrega iniciada!\n\n" .
+            $message = "✅ ¡Entrega iniciada!\n\n" .
                 "Conduce con seguridad al destino.\n\n" .
                 "Responde ENTREGADO cuando completes la entrega.";
         } else {
-            $message = "\u2705 \u00a1Viaje iniciado!\n\n" .
+            $message = "✅ ¡Viaje iniciado!\n\n" .
                 "Conduce con seguridad al destino.\n\n" .
                 "Responde FINISH cuando llegues al destino.";
         }
@@ -760,7 +760,7 @@ class DriverAssignmentService
         if (!$trip) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u274c No se encontr\u00f3 una entrega activa para completar."
+                "❌ No se encontró una entrega activa para completar."
             );
             return ['status' => 'error', 'message' => 'No active delivery found'];
         }
@@ -769,7 +769,7 @@ class DriverAssignmentService
         if (!$this->serviceRequiresPod($trip)) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u26a0\ufe0f Este servicio usa finalizaci\u00f3n simple.\n\n" .
+                "⚠️ Este servicio usa finalización simple.\n\n" .
                     "Responde FINISH para finalizar el viaje."
             );
             return ['status' => 'error', 'message' => 'Use finish for taxi service'];
@@ -784,10 +784,10 @@ class DriverAssignmentService
 
         $this->metaWhatsApp->sendMessage(
             $driver->user->whatsapp_number,
-            "\u2705 \u00a1Entrega completada!\n" .
-                "\u00a1Buen trabajo!\n\n" .
-                "\ud83d\udcb0 Pago pendiente: " . $priceFormatted . "\n\n" .
-                "\u00a1Gracias por tu servicio!"
+            "✅ ¡Entrega completada!\n" .
+                "¡Buen trabajo!\n\n" .
+                "💰 Pago pendiente: " . $priceFormatted . "\n\n" .
+                "¡Gracias por tu servicio!"
         );
 
         return ['status' => 'success', 'message' => 'Delivery completed'];
@@ -807,7 +807,7 @@ class DriverAssignmentService
         if (!$trip) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u274c No se encontr\u00f3 un viaje activo para finalizar."
+                "❌ No se encontró un viaje activo para finalizar."
             );
             return ['status' => 'error', 'message' => 'No active trip found'];
         }
@@ -816,7 +816,7 @@ class DriverAssignmentService
         if ($this->serviceRequiresPod($trip)) {
             $this->metaWhatsApp->sendMessage(
                 $driver->user->whatsapp_number,
-                "\u26a0\ufe0f Este servicio requiere confirmaci\u00f3n de entrega.\n\n" .
+                "⚠️ Este servicio requiere confirmación de entrega.\n\n" .
                     "Responde ENTREGADO y usa la app para subir foto, firma y nombre del receptor."
             );
             return ['status' => 'error', 'message' => 'Use complete for delivery service'];
@@ -831,10 +831,10 @@ class DriverAssignmentService
 
         $this->metaWhatsApp->sendMessage(
             $driver->user->whatsapp_number,
-            "\u2705 \u00a1Viaje finalizado!\n" .
-                "\u00a1Buen trabajo!\n\n" .
-                "\ud83d\udcb0 Pago: " . $priceFormatted . "\n\n" .
-                "\u00a1Gracias por tu servicio!"
+            "✅ ¡Viaje finalizado!\n" .
+                "¡Buen trabajo!\n\n" .
+                "💰 Pago: " . $priceFormatted . "\n\n" .
+                "¡Gracias por tu servicio!"
         );
 
         return ['status' => 'success', 'message' => 'Trip finished'];
@@ -851,12 +851,12 @@ class DriverAssignmentService
         $requiresPod = $this->serviceRequiresPod($trip);
         $serviceLabel = $requiresPod ? 'Entrega' : 'Viaje';
 
-        $message = "\u2705 *\u00a1" . strtoupper($serviceLabel) . " asignado!*\n\n" .
-            "\ud83d\udc64 *Nombre:* {$driverName}\n" .
+        $message = "✅ *¡" . strtoupper($serviceLabel) . " asignado!*\n\n" .
+            "👤 *Nombre:* {$driverName}\n" .
             "{$vehicleDisplay}\n" .
-            "\ud83d\udcf1 *Tel\u00e9fono:* {$driverPhone}\n\n" .
-            "\ud83d\udcb0 *Precio:* {$priceFormatted}\n\n" .
-            "\ud83d\ude9a El conductor ya va hacia tu ubicaci\u00f3n de recogida.";
+            "📱 *Teléfono:* {$driverPhone}\n\n" .
+            "💰 *Precio:* {$priceFormatted}\n\n" .
+            "🚚 El conductor ya va hacia tu ubicación de recogida.";
 
         $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
     }
@@ -864,7 +864,7 @@ class DriverAssignmentService
     protected function buildVehicleDescription(?Vehicle $vehicle): string
     {
         if (!$vehicle) {
-            return 'Veh\u00edculo';
+            return 'Vehículo';
         }
 
         $parts = [];
@@ -889,24 +889,24 @@ class DriverAssignmentService
             return implode(' ', $parts);
         }
 
-        return $vehicle->vehicle_type_label ?? $vehicle->type ?? 'Veh\u00edculo';
+        return $vehicle->vehicle_type_label ?? $vehicle->type ?? 'Vehículo';
     }
 
     protected function formatVehicleForDisplay(?Vehicle $vehicle): string
     {
         if (!$vehicle) {
-            return '\ud83d\ude97 Veh\u00edculo no especificado';
+            return '🚗 Vehículo no especificado';
         }
 
         $description = $this->buildVehicleDescription($vehicle);
         $plate = $vehicle->plate_number ?? 'N/A';
-        $typeLabel = $vehicle->vehicle_type_label ?? $this->vehicleLabels[$vehicle->type] ?? $vehicle->type ?? 'Veh\u00edculo';
+        $typeLabel = $vehicle->vehicle_type_label ?? $this->vehicleLabels[$vehicle->type] ?? $vehicle->type ?? 'Vehículo';
 
-        if ($description === $typeLabel || $description === 'Veh\u00edculo') {
-            return "\ud83d\ude97 {$typeLabel} - Placa: {$plate}";
+        if ($description === $typeLabel || $description === 'Vehículo') {
+            return "🚗 {$typeLabel} - Placa: {$plate}";
         }
 
-        return "\ud83d\ude97 {$description} - Placa: {$plate}";
+        return "🚗 {$description} - Placa: {$plate}";
     }
 
     public function updateTripStatus(int $tripId, string $status): void
@@ -968,12 +968,12 @@ class DriverAssignmentService
         $driver = Driver::find($trip->driver_id);
         $vehicle = Vehicle::find($trip->vehicle_id);
         $driverName = $driver?->user?->name ?? 'Mensajero';
-        $vehicleDisplay = $vehicle ? $this->formatVehicleForDisplay($vehicle) : '\ud83d\ude97 Veh\u00edculo no especificado';
+        $vehicleDisplay = $vehicle ? $this->formatVehicleForDisplay($vehicle) : '🚗 Vehículo no especificado';
 
         $customerMessage = match ($status) {
-            'en_route' => "\ud83d\ude9a *Tu mensajero est\u00e1 en camino*\n\n\ud83d\udc64 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nSe dirige a tu ubicaci\u00f3n de recogida.",
-            'arrived' => "\ud83d\udccd *Tu mensajero ha llegado*\n\n\ud83d\udc64 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nYa est\u00e1 en el punto de recogida.",
-            'in_progress' => "\u2705 *\u00a1Viaje iniciado!*\n\n\ud83d\udc64 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nYendo al destino final.",
+            'en_route' => "🚚 *Tu mensajero está en camino*\n\n👤 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nSe dirige a tu ubicación de recogida.",
+            'arrived' => "📍 *Tu mensajero ha llegado*\n\n👤 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nYa está en el punto de recogida.",
+            'in_progress' => "✅ *¡Viaje iniciado!*\n\n👤 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nYendo al destino final.",
             'completed' => null,
             default => null
         };
@@ -1019,12 +1019,12 @@ class DriverAssignmentService
         $requiresPod = $this->serviceRequiresPod($trip);
         $serviceLabel = $requiresPod ? 'Entrega' : 'Viaje';
 
-        $message = "\u2705 *\u00a1{$serviceLabel} completado!*\n\n" .
-            "\ud83d\udce6 *Pedido:* #{$trip->id}\n" .
-            "\ud83d\udc64 *Conductor:* {$driverName}\n" .
+        $message = "✅ *¡{$serviceLabel} completado!*\n\n" .
+            "📦 *Pedido:* #{$trip->id}\n" .
+            "👤 *Conductor:* {$driverName}\n" .
             "{$vehicleDisplay}\n" .
-            "\ud83d\udcc5 *Fecha:* {$completedAt}\n\n" .
-            "Gracias por usar nuestro servicio! \ud83d\ude9a";
+            "📅 *Fecha:* {$completedAt}\n\n" .
+            "Gracias por usar nuestro servicio! 🚚";
 
         $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
     }

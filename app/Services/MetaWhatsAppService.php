@@ -200,7 +200,7 @@ class MetaWhatsAppService
     {
         $parameters = [
             $rideDetails['name'] ?? 'Cliente',
-            'Delivery',
+            $rideDetails['service_type'] ?? 'Delivery',
             $rideDetails['pickup'] ?? 'No especificado',
             $rideDetails['destination'] ?? 'No especificado',
             $rideDetails['price'] ?? '0',

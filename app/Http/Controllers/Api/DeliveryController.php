@@ -61,7 +61,7 @@ class DeliveryController extends Controller
         $acceptedTrip        = null;
 
         try {
-            // \u2500\u2500 1. ONLY DB WORK inside the transaction \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            // ── 1. ONLY DB WORK inside the transaction ──────────────────────────
             // Broadcasts and WhatsApp calls happen AFTER the transaction commits
             // so the DB lock is released quickly and the app gets a fast response.
             $txResult = DB::transaction(function () use ($tripId, $driver,
@@ -90,7 +90,7 @@ class DeliveryController extends Controller
                         'early_exit' => true,
                         'response' => response()->json([
                             'success' => false,
-                            'message' => 'Saldo insuficiente para comisi\u00f3n',
+                            'message' => 'Saldo insuficiente para comisión',
                             'required' => $estimatedCommission,
                             'current' => $wallet?->balance ?? 0,
                         ], 403),
@@ -140,7 +140,7 @@ class DeliveryController extends Controller
 
             $acceptedTrip = $txResult['trip'];
 
-            // \u2500\u2500 2. BROADCASTS (outside transaction \u2014 fast) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            // ── 2. BROADCASTS (outside transaction — fast) ──────────────────────
             try {
                 broadcast(new DeliveryAccepted($acceptedTrip, $driver, $otherDriverIds));
                 broadcast(new TripStatusChanged($acceptedTrip, $previousStatus, [
@@ -151,7 +151,7 @@ class DeliveryController extends Controller
                 Log::error('Broadcast failed: ' . $e->getMessage());
             }
 
-            // \u2500\u2500 3. WHATSAPP NOTIFICATIONS (outside transaction \u2014 potentially slow) \u2500\u2500
+            // ── 3. WHATSAPP NOTIFICATIONS (outside transaction — potentially slow) ──
             try {
                 $this->notifyCustomerAssigned($acceptedTrip, $driver);
             } catch (\Exception $e) {
@@ -389,27 +389,27 @@ class DeliveryController extends Controller
         $requiresPod = (bool) ($trip->requires_pod ?? true);
 
         $message = match ($status) {
-            'driver_arrived' => "\ud83d\udccd Actualizaci\u00f3n de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
+            'driver_arrived' => "📍 Actualización de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
                 "Pedido: #{$orderId}\n\n" .
-                "\u2705 El " . ($requiresPod ? 'mensajero' : 'conductor') . " ha llegado al punto de " . ($requiresPod ? 'recojo' : 'recogida') . ".\n" .
-                ($requiresPod ? "Tu pedido est\u00e1 por ser retirado." : "El pasajero puede subir.") . "\n\n" .
-                "\ud83d\udc64 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
+                "✅ El " . ($requiresPod ? 'mensajero' : 'conductor') . " ha llegado al punto de " . ($requiresPod ? 'recojo' : 'recogida') . ".\n" .
+                ($requiresPod ? "Tu pedido está por ser retirado." : "El pasajero puede subir.") . "\n\n" .
+                "👤 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
 
-            'picked_up' => "\ud83d\udce6 Actualizaci\u00f3n de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
-                "Pedido: #{$orderId}\n\n" .
-                ($requiresPod
-                    ? "\u2705 El mensajero confirm\u00f3 el recojo de tu pedido.\nAhora se dirige al punto de entrega."
-                    : "\u2705 El conductor recogi\u00f3 al pasajero.\nYendo al destino final.") . "\n\n" .
-                "\ud83d\udc64 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
-
-            'in_progress' => "\ud83d\ude9a Actualizaci\u00f3n de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
+            'picked_up' => "📦 Actualización de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
                 "Pedido: #{$orderId}\n\n" .
                 ($requiresPod
-                    ? "\u2705 Tu pedido est\u00e1 en camino.\nEl mensajero se dirige a tu ubicaci\u00f3n."
-                    : "\u2705 El viaje est\u00e1 en progreso.\nYendo al destino final.") . "\n\n" .
-                "\ud83d\udc64 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
+                    ? "✅ El mensajero confirmó el recojo de tu pedido.\nAhora se dirige al punto de entrega."
+                    : "✅ El conductor recogió al pasajero.\nYendo al destino final.") . "\n\n" .
+                "👤 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
 
-            'cancelled' => "\u274c " . ($requiresPod ? 'Entrega' : 'Viaje') . " cancelado\n\n" .
+            'in_progress' => "🚚 Actualización de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
+                "Pedido: #{$orderId}\n\n" .
+                ($requiresPod
+                    ? "✅ Tu pedido está en camino.\nEl mensajero se dirige a tu ubicación."
+                    : "✅ El viaje está en progreso.\nYendo al destino final.") . "\n\n" .
+                "👤 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
+
+            'cancelled' => "❌ " . ($requiresPod ? 'Entrega' : 'Viaje') . " cancelado\n\n" .
                 "Pedido: #{$orderId}\n\n" .
                 "Lo sentimos, el " . ($requiresPod ? 'mensajero' : 'conductor') . " ha cancelado.\n" .
                 "Estamos buscando otro " . ($requiresPod ? 'mensajero' : 'conductor') . " para ti.\n\n" .
@@ -781,20 +781,20 @@ class DeliveryController extends Controller
             $receiverName = $pod->receiver_name ?? 'No especificado';
             $deliveryDateTime = now()->format('d/m/Y H:i');
 
-            $message = "\u2705 Entrega completada\n\n" .
+            $message = "✅ Entrega completada\n\n" .
                 "Pedido: #{$orderId}\n" .
                 "Recibido por: {$receiverName}\n" .
                 "Fecha y hora: {$deliveryDateTime}\n" .
-                "\ud83d\udc64 Mensajero: {$driverName}\n\n" .
-                "Gracias por usar nuestro servicio. \ud83d\ude9a";
+                "👤 Mensajero: {$driverName}\n\n" .
+                "Gracias por usar nuestro servicio. 🚚";
         } else {
             $deliveryDateTime = now()->format('d/m/Y H:i');
 
-            $message = "\u2705 Viaje completado\n\n" .
+            $message = "✅ Viaje completado\n\n" .
                 "Pedido: #{$orderId}\n" .
                 "Fecha y hora: {$deliveryDateTime}\n" .
-                "\ud83d\udc64 Conductor: {$driverName}\n\n" .
-                "Gracias por viajar con nosotros. \ud83d\ude95";
+                "👤 Conductor: {$driverName}\n\n" .
+                "Gracias por viajar con nosotros. 🚕";
         }
 
         try {
@@ -948,7 +948,7 @@ class DeliveryController extends Controller
 
     protected function notifyDriverRejected(Driver $driver, Trip $trip): void
     {
-        $message = "\u274c La entrega #{$trip->id} fue asignada a otro mensajero.\n" .
+        $message = "❌ La entrega #{$trip->id} fue asignada a otro mensajero.\n" .
             "Esperando nuevas oportunidades...";
 
         $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
@@ -975,18 +975,18 @@ class DeliveryController extends Controller
             $vehicle = \App\Models\Vehicle::where('driver_id', $driver->id)->first();
             $requiresPod = (bool) ($trip->requires_pod ?? true);
 
-            $message = "\u2705 *" . ($requiresPod ? 'Mensajero' : 'Conductor') . " asignado*\n\n" .
-                "\ud83d\udc64 *Nombre:* " . $driverName . "\n";
+            $message = "✅ *" . ($requiresPod ? 'Mensajero' : 'Conductor') . " asignado*\n\n" .
+                "👤 *Nombre:* " . $driverName . "\n";
 
             if ($vehicle) {
-                $message .= "\ud83d\ude97 *Veh\u00edculo:* " . ($vehicle->type ?? 'Veh\u00edculo') . "\n" .
-                           "\ud83d\udd22 *Placa:* " . ($vehicle->plate_number ?? 'N/A') . "\n";
+                $message .= "🚗 *Vehículo:* " . ($vehicle->type ?? 'Vehículo') . "\n" .
+                           "🔢 *Placa:* " . ($vehicle->plate_number ?? 'N/A') . "\n";
             }
 
-            $message .= "\ud83d\udcf1 *Contacto:* " . ($driver->user->whatsapp_number ?? 'N/A') . "\n" .
-                "\ud83d\udcb0 *Precio:* " . $priceFormatted . "\n\n" .
-                "\u00a1Tu " . ($requiresPod ? 'mensajero' : 'conductor') . " est\u00e1 en camino! \ud83d\ude9a\n\n" .
-                "Env\u00eda *ESTADO* para actualizaciones.";
+            $message .= "📱 *Contacto:* " . ($driver->user->whatsapp_number ?? 'N/A') . "\n" .
+                "💰 *Precio:* " . $priceFormatted . "\n\n" .
+                "¡Tu " . ($requiresPod ? 'mensajero' : 'conductor') . " está en camino! 🚚\n\n" .
+                "Envía *ESTADO* para actualizaciones.";
 
             $whatsappService->sendMessage($trip->customer->whatsapp_number, $message);
         }
@@ -999,12 +999,12 @@ class DeliveryController extends Controller
             $language = ConversationSession::where('trip_id', $trip->id)->value('language') ?? 'es';
 
             $message = $language === 'es'
-                ? "\u2705 \u00a1Entrega completada!\\n\\n" .
+                ? "✅ ¡Entrega completada!\\n\\n" .
                   "Pedido: #{$trip->id}\\n" .
                   "Recibido por: {$pod->receiver_name}\\n" .
                   "Fecha: " . now()->format('d/m/Y H:i') . "\\n\\n" .
                   "Gracias por usar nuestro servicio!"
-                : "\u2705 Delivery completed!\\n\\n" .
+                : "✅ Delivery completed!\\n\\n" .
                   "Order: #{$trip->id}\\n" .
                   "Received by: {$pod->receiver_name}\\n" .
                   "Date: " . now()->format('Y-m-d H:i') . "\\n\\n" .
