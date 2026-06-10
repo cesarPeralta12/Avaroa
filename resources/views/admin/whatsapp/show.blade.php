@@ -121,9 +121,7 @@
     .state-DRIVER_ASSIGNED,.state-DRIVER_EN_ROUTE,.state-ARRIVED,.state-IN_PROGRESS { background: #ffedd5; color: #c2410c; }
     .state-default { background: #dbeafe; color: #1e40af; }
 
-    /* dark mode tweaks */
-    .dark-only { display: none; }
-    body.dark-only .dark-only { display: block; }
+
 </style>
 @endsection
 
