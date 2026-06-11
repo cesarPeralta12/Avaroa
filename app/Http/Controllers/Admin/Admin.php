@@ -239,7 +239,6 @@ class Admin extends Controller
             'completed' => Trip::where('status', 'completed')->count(),
             'cancelled' => Trip::where('status', 'cancelled')->count(),
             'pending' => $pendingJobs,
-            'pending' => Trip::where('status', 'pending')->count(),
         ];
 
         // Viajes recientes
