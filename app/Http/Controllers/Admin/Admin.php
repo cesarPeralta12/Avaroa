@@ -202,18 +202,26 @@ class Admin extends Controller
         $totalWalletBalance = \App\Models\Wallet::sum('balance') ?? 0;
 
         // SLA y rendimiento
-        $avgDeliveryTime = Trip::where('status', 'completed')
-            ->whereNotNull('completed_at')
-            ->whereNotNull('accepted_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, accepted_at, completed_at)) as avg_time')
-            ->first()
-            ->avg_time ?? 0;
+        try {
+            $avgDeliveryTime = Trip::where('status', 'completed')
+                ->whereNotNull('completed_at')
+                ->whereNotNull('accepted_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, accepted_at, completed_at)) as avg_time')
+                ->first()
+                ->avg_time ?? 0;
+        } catch (\Exception $e) {
+            $avgDeliveryTime = 0;
+        }
 
-        $onTimeDeliveries = Trip::where('status', 'completed')
-            ->whereNotNull('eta')
-            ->whereNotNull('completed_at')
-            ->whereRaw('completed_at <= DATE_ADD(accepted_at, INTERVAL eta MINUTE)')
-            ->count();
+        try {
+            $onTimeDeliveries = Trip::where('status', 'completed')
+                ->whereNotNull('eta')
+                ->whereNotNull('completed_at')
+                ->whereRaw('completed_at <= DATE_ADD(accepted_at, INTERVAL eta MINUTE)')
+                ->count();
+        } catch (\Exception $e) {
+            $onTimeDeliveries = 0;
+        }
 
         $completedCount = Trip::where('status', 'completed')->count();
         $slaPercentage = $completedCount > 0 ? round(($onTimeDeliveries / $completedCount) * 100, 1) : 0;
@@ -235,10 +243,11 @@ class Admin extends Controller
 
         // Datos para gráfico de estado de entregas
         $deliveryStatus = [
-            'active' => $activeDeliveries,
+            'active'    => $activeDeliveries,
             'completed' => Trip::where('status', 'completed')->count(),
             'cancelled' => Trip::where('status', 'cancelled')->count(),
-            'pending' => $pendingJobs,
+            'pending'   => $pendingJobs,
+            'searching' => Trip::where('status', 'searching')->count(),
         ];
 
         // Viajes recientes
