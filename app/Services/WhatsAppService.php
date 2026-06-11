@@ -390,7 +390,7 @@ class WhatsAppService
 
         $session->update([
             'trip_id' => $trip->id,
-            'flow_type' => $selectedService,
+            'flow_type' => $dbServiceType,
             'state' => 'ASK_PICKUP',
             'data' => json_encode([
                 'vehicle_type' => $selectedVehicle,

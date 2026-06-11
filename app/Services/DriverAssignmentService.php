@@ -186,15 +186,34 @@ class DriverAssignmentService
      */
     protected function serviceRequiresPod(Trip $trip): bool
     {
-        $serviceType = $trip->service_type ?? 'delivery';
-
         // Check explicit requires_pod field first
         if (isset($trip->requires_pod)) {
             return (bool) $trip->requires_pod;
         }
 
-        // Fallback to service type config
-        return $this->serviceTypeConfig[$serviceType]['requires_pod'] ?? true;
+        // Prefer the detailed service key from the conversation session data
+        if (!empty($trip->conversation_id)) {
+            try {
+                $session = \App\Models\ConversationSession::find($trip->conversation_id);
+                if ($session && !empty($session->data)) {
+                    $data = json_decode($session->data, true);
+                    $detailed = $data['service_type'] ?? null; // e.g. 'mototaxi', 'delivery'
+                    if ($detailed && isset($this->serviceTypeConfig[$detailed])) {
+                        return (bool) $this->serviceTypeConfig[$detailed]['requires_pod'];
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to read session data for serviceRequiresPod', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Fallback: try to map DB label to lowercase key
+        $serviceType = strtolower($trip->service_type ?? 'delivery');
+        if (isset($this->serviceTypeConfig[$serviceType])) {
+            return (bool) $this->serviceTypeConfig[$serviceType]['requires_pod'];
+        }
+
+        return true;
     }
 
     /**
