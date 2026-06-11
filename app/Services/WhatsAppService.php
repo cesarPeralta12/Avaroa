@@ -681,7 +681,7 @@ class WhatsAppService
         }
 
         $session->update(['state' => 'SEARCHING_DRIVER']);
-        $trip->update(['status' => 'searching']);
+        $trip->update(['status' => 'pending']);
 
         if (!$trip->price || $trip->price <= 0) {
             $this->tripFlow->calculateCost($trip);
@@ -1209,7 +1209,7 @@ class WhatsAppService
             'pickup_set' => '📍 Recogida guardada.',
             'destination_set' => '📦 Destino guardado, calculando precio...',
             'priced' => '💰 Precio listo, esperando tu confirmación.',
-            'searching' => '🔍 Buscando conductor...',
+            'pending' => '🔍 Buscando conductor...',
             'assigned' => '✅ Conductor asignado, en camino a la recogida.',
             'en_route' => '🚚 Conductor en camino al destino.',
             'arrived' => '📍 El conductor llegó a la ubicación.',

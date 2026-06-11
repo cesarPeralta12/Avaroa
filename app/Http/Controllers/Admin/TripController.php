@@ -259,7 +259,7 @@ class TripController extends Controller
         }
 
         $user_session = User::findOrFail(Session::get('LoggedIn'));
-        $pendingTrips = Trip::whereIn('status', ['searching', 'DISPATCHING'])->get();
+        $pendingTrips = Trip::whereIn('status', ['pending', 'DISPATCHING'])->get();
         $availableDrivers = Driver::where('status', 'available')
             ->where('is_online', true)
             ->with('user', 'vehicles')

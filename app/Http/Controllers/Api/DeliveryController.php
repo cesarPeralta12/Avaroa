@@ -83,7 +83,7 @@ class DeliveryController extends Controller
                 }
 
                 $wallet = $driver->wallet ?? null;
-                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * 0.15);
+                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * 0.13);
 
                 if (!$wallet || $wallet->balance < $estimatedCommission) {
                     return [
@@ -241,7 +241,7 @@ class DeliveryController extends Controller
                 'cargo_type' => $trip->cargo_type,
                 'estimated_duration' => $this->estimateDuration($trip->distance),
                 'estimated_fare' => (float) ($trip->price ?? $trip->estimated_fare ?? 0),
-                'commission' => ceil((($trip->price ?? $trip->estimated_fare ?? 0)) * 0.15),
+                'commission' => ceil((($trip->price ?? $trip->estimated_fare ?? 0)) * 0.13),
                 'customer_note' => $trip->notes,
 
                 // CRITICAL FIX: Include service type and POD requirement
@@ -904,7 +904,7 @@ class DeliveryController extends Controller
                 'created_at' => $trip->created_at->toIso8601String(),
                 'completed_at' => $trip->completed_at?->toIso8601String(),
                 'distance' => (float) $trip->distance,
-                'commission' => ceil(($trip->price ?? 0) * 0.15),
+                'commission' => ceil(($trip->price ?? 0) * 0.13),
 
                 // CRITICAL FIX: Include service type and POD info
                 'service_type' => $trip->service_type ?? 'delivery',

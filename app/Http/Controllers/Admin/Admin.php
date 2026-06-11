@@ -181,7 +181,7 @@ class Admin extends Controller
 
         // Estados de viajes
         $activeDeliveries = Trip::whereIn('status', ['accepted', 'driver_arrived', 'picked_up', 'in_progress'])->count();
-        $pendingJobs = Trip::where('status', 'searching')->count();
+        $pendingJobs = Trip::where('status', 'pending')->count();
         $completedToday = Trip::where('status', 'completed')->whereDate('completed_at', $today)->count();
         $cancellationsToday = Trip::where('status', 'cancelled')->whereDate('cancelled_at', $today)->count();
         $totalCancellations = Trip::where('status', 'cancelled')->count();
@@ -239,7 +239,7 @@ class Admin extends Controller
             'completed' => Trip::where('status', 'completed')->count(),
             'cancelled' => Trip::where('status', 'cancelled')->count(),
             'pending' => $pendingJobs,
-            'searching' => Trip::where('status', 'searching')->count(),
+            'pending' => Trip::where('status', 'pending')->count(),
         ];
 
         // Viajes recientes
@@ -310,7 +310,7 @@ class Admin extends Controller
                 'success' => true,
                 'online_drivers' => Driver::where('is_online', 1)->where('status', 'available')->count(),
                 'active_deliveries' => Trip::whereIn('status', ['accepted', 'driver_arrived', 'picked_up', 'in_progress'])->count(),
-                'pending_requests' => Trip::where('status', 'searching')->count(),
+                'pending_requests' => Trip::where('status', 'pending')->count(),
                 'today_revenue' => Trip::whereDate('completed_at', $today)->where('status', 'completed')->sum('price') ?? 0,
                 'today_orders' => Trip::whereDate('created_at', $today)->count(),
             ]);

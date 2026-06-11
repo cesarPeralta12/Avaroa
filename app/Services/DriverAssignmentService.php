@@ -31,8 +31,8 @@ class DriverAssignmentService
      * Now includes all 6 vehicle types: moto, automovil, minivan, camioneta, torito, bicicleta
      */
     protected array $baseVehicleTypeMap = [
-        'moto'        => ['moto', 'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi'],
-        'automovil'   => ['automovil', 'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla', 'carro', 'sedan', 'sedán'],
+        'moto'        => ['moto', 'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi', 'motorcycle'],
+        'automovil'   => ['automovil', 'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla', 'carro', 'sedan', 'sedán', 'car'],
         'minivan'     => ['minivan', 'vagoneta', 'van', 'furgon', 'furgón', 'suv'],
         'camioneta'   => ['camioneta', 'camion', 'camión', 'truck', 'pickup', 'pick up', 'torito'],
         'torito'      => ['torito', 'motocarro', 'triciclo'],
@@ -235,7 +235,6 @@ class DriverAssignmentService
 
         return Vehicle::where('driver_id', $driver->id)
             ->whereIn('type', $matchingTypes)
-            ->where('is_active', true)
             ->first();
     }
 
@@ -249,7 +248,7 @@ class DriverAssignmentService
             DriverRequest::where('trip_id', $trip->id)->delete();
         }
 
-        $trip->update(['status' => 'searching']);
+        $trip->update(['status' => 'pending']);
 
         $vehicleType = $trip->vehicle_type;
         $matchingTypes = $this->getMatchingVehicleTypes($vehicleType);
@@ -269,12 +268,10 @@ class DriverAssignmentService
                 $q->whereIn('status', ['assigned', 'en_route', 'in_progress']);
             })
             ->whereHas('vehicles', function ($query) use ($matchingTypes) {
-                $query->whereIn('type', $matchingTypes)
-                    ->where('is_active', true);
+                $query->whereIn('type', $matchingTypes);
             })
             ->with(['user', 'vehicles' => function ($query) use ($matchingTypes) {
-                $query->whereIn('type', $matchingTypes)
-                    ->where('is_active', true);
+                $query->whereIn('type', $matchingTypes);
             }])
             ->get();
 
@@ -323,7 +320,7 @@ class DriverAssignmentService
             );
 
             $driverIds[] = $driver->id;
-            $this->sendRequestToDriver($driver, $trip, $language);
+            // $this->sendRequestToDriver($driver, $trip, $language); // Disabled WhatsApp sending to drivers
         }
 
         broadcast(new NewDeliveryRequest($trip, $driverIds, 300));
@@ -346,8 +343,8 @@ class DriverAssignmentService
     {
         $trip = Trip::find($tripId);
 
-        if (!$trip || $trip->status !== 'searching') {
-            Log::info('Trip expiration check skipped - not in searching state', [
+        if (!$trip || $trip->status !== 'pending') {
+            Log::info('Trip expiration check skipped - not in pending state', [
                 'trip_id' => $tripId,
                 'current_status' => $trip?->status
             ]);
@@ -404,7 +401,7 @@ class DriverAssignmentService
             // CRITICAL FIX: Use first matching vehicle from the preloaded relationship
             $matchingTypes = $this->getMatchingVehicleTypes($trip->vehicle_type);
             $matchingVehicle = $driver->vehicles->first(function ($v) use ($matchingTypes) {
-                return in_array($v->type, $matchingTypes) && $v->is_active;
+                return in_array($v->type, $matchingTypes);
             });
 
             $vehicleInfo = $matchingVehicle
@@ -520,7 +517,7 @@ class DriverAssignmentService
                 return ['status' => 'error', 'message' => 'Trip not found'];
             }
 
-            if ($trip->status !== 'searching') {
+            if ($trip->status !== 'pending') {
                 $request->update(['status' => 'rejected']);
 
                 $this->metaWhatsApp->sendMessage(
@@ -588,7 +585,7 @@ class DriverAssignmentService
             }
 
             broadcast(new DeliveryAccepted($trip, $driver, $otherDriverIds));
-            broadcast(new TripStatusChanged($trip, 'searching', [
+            broadcast(new TripStatusChanged($trip, 'pending', [
                 'accepted_by' => $driver->id,
                 'accepted_at' => now()->toIso8601String(),
             ]));
@@ -936,7 +933,7 @@ class DriverAssignmentService
         $previousStatus = $trip->status;
 
         $validTransitions = [
-            'searching' => ['assigned', 'no_drivers'],
+            'pending' => ['assigned', 'no_drivers'],
             'assigned' => ['en_route', 'arrived', 'cancelled'],
             'en_route' => ['arrived', 'cancelled'],
             'arrived' => ['in_progress', 'cancelled'],
