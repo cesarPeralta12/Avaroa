@@ -373,10 +373,13 @@ class WhatsAppService
         $serviceData = $vehicleOption['services'][$selectedService];
         $requiresPod = $serviceData['requires_pod'];
 
+        // Map the selected service to the canonical DB category (Taxi/Delivery/Cargo)
+        $dbServiceType = $this->mapServiceTypeForDatabase($selectedService);
+
         $trip = Trip::create([
             'customer_id' => $user->id,
             'conversation_id' => $session->id,
-            'service_type' => $selectedService,
+            'service_type' => $dbServiceType,
             'vehicle_type' => $vehicleOption['backend_type'],
             'status' => 'NEW',
             'payment_method' => 'cash',
@@ -434,6 +437,25 @@ class WhatsAppService
         }
 
         return null;
+    }
+
+    /**
+     * Map internal service keys (mototaxi, flash, delivery, taxi, cargo)
+     * to the canonical values accepted by the database/admin UI.
+     */
+    protected function mapServiceTypeForDatabase(string $serviceKey): string
+    {
+        $map = [
+            'mototaxi' => 'Taxi',
+            'taxi' => 'Taxi',
+            'flash' => 'Delivery',
+            'moto_flash' => 'Delivery',
+            'delivery' => 'Delivery',
+            'cargo' => 'Cargo',
+            'small_cargo' => 'Cargo'
+        ];
+
+        return $map[$serviceKey] ?? ucfirst($serviceKey);
     }
 
     protected function handleAskPickup($session, $user, string $message, ?array $locationData, bool $hasValidCoords, string $language = 'es'): void
