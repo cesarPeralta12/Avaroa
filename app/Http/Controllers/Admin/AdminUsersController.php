@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Session;
 
 class AdminUsersController extends Controller
 {
-    private const ALLOWED_ROLES = ['admin', 'operator', 'customer'];
+    private const ALLOWED_ROLES = ['admin', 'operator', 'asistente', 'customer'];
 
     private function checkSession(): User
     {

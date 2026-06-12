@@ -1,8 +1,10 @@
 @php
-    $isSuperAdmin = $user_session->is_super_admin;
-    $isOperator = !$isSuperAdmin && ($user_session->role ?? 'customer') === 'operator';
+    $isSuperAdmin  = $user_session->is_super_admin;
+    $currentRole   = $isSuperAdmin ? 'admin' : ($user_session->role ?? 'customer');
+    $isOperator    = $currentRole === 'operator';
+    $isAsistente   = $currentRole === 'asistente';
 @endphp
-@if ($isSuperAdmin || $isOperator)
+@if ($isSuperAdmin || $isOperator || $isAsistente)
     <div class="sidebar-wrapper">
         <div>
             <div class="logo-wrapper"><a href="{{ route('dashboard') }}">
@@ -111,6 +113,7 @@
                                 <span>File manager</span>
                             </a>
                         </li> --}}
+                        @if(!$isAsistente)
                         <li class="sidebar-list {{ Request::is('users') ? 'active' : '' }}"><i
                                 class="fa fa-thumb-tack"></i>
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('users') }}">
@@ -118,6 +121,7 @@
                                 <span>Gestión de Clientes</span>
                             </a>
                         </li>
+                        @endif
                         <!-- Drivers Manage -->
                         <li class="sidebar-list {{ Request::routeIs('admin.drivers.*') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('drivers.index') }}">
@@ -187,13 +191,15 @@
 
                         <!--    </a>-->
                         <!--</li>-->
+                        @if(!$isAsistente)
                         <li class="sidebar-list {{ Request::is('admin/proof-of-delivery*') ? 'active' : '' }}">
     <i class="fa fa-thumb-tack"></i>
     <a class="sidebar-link sidebar-title link-nav" href="{{ url('admin/proof-of-delivery') }}">
-        <i class="fas fa-file-signature text-light"></i> 
+        <i class="fas fa-file-signature text-light"></i>
         <span>Pruebas de Entrega</span>
     </a>
 </li>
+                        @endif
                         <!--<li class="sidebar-list {{ Request::is('qrcode') ? 'active' : '' }}"><i-->
                         <!--        class="fa fa-thumb-tack"></i>-->
                         <!--    <a class="sidebar-link sidebar-title link-nav" href="{{ url('admin/qrcode') }}">-->
@@ -238,7 +244,7 @@
                         </li>
 
                         <!-- WhatsApp Bot (controllable via WHATSAPP_PANEL_ENABLED env var) -->
-                        @if(config('services.whatsapp_panel.enabled', true))
+                        @if(!$isAsistente && config('services.whatsapp_panel.enabled', true))
                         <li class="sidebar-list {{ Request::routeIs('whatsapp.*') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('whatsapp.index') }}">
                                 <i class="fab fa-whatsapp" style="color:#25d366;"></i>&nbsp;&nbsp;&nbsp;

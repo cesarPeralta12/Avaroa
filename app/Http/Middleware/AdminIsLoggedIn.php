@@ -29,7 +29,7 @@ class AdminIsLoggedIn
 
         $role = $user->is_super_admin ? 'admin' : ($user->role ?? 'customer');
 
-        if (!in_array($role, ['admin', 'operator'])) {
+        if (!in_array($role, ['admin', 'operator', 'asistente'])) {
             Session::forget('LoggedIn');
             return redirect('admin/login')->with('fail', 'No tienes permisos para acceder al panel de administración.');
         }
@@ -46,6 +46,33 @@ class AdminIsLoggedIn
 
             if (!$permitted) {
                 abort(403, 'Los operadores solo pueden acceder a Solicitudes de Recarga y Viajes.');
+            }
+        }
+
+        // Asistentes: conductores, viajes y gestión de billetera
+        if ($role === 'asistente') {
+            $path = $request->path();
+            $permitted = \Illuminate\Support\Str::is([
+                'admin/drivers*',
+                'admin/documents*',
+                'admin/trips*',
+                'admin/wallets*',
+                'admin/topup-requests*',
+                'admin/wallet-transactions*',
+                'admin/dashboard*',
+                'admin/get-notifications*',
+                'admin/get/messages*',
+                'admin/edit_profile*',
+                'admin/update_profile*',
+                'admin/change_password*',
+                'admin/update_password*',
+                'admin/login*',
+                'admin/logout*',
+                'admin/signout*',
+            ], $path);
+
+            if (!$permitted) {
+                abort(403, 'No tienes permiso para acceder a esta sección.');
             }
         }
 

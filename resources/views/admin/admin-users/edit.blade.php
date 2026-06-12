@@ -42,12 +42,14 @@
                                     @php
                                         $currentRole = $user->is_super_admin ? 'admin' : ($user->role ?? 'customer');
                                     @endphp
-                                    <option value="customer"  {{ $currentRole === 'customer'  ? 'selected' : '' }}>Cliente</option>
-                                    <option value="operator"  {{ $currentRole === 'operator'  ? 'selected' : '' }}>Operador (recarga + viajes)</option>
-                                    <option value="admin"     {{ $currentRole === 'admin'     ? 'selected' : '' }}>Administrador (acceso total)</option>
+                                    <option value="customer"   {{ $currentRole === 'customer'   ? 'selected' : '' }}>Cliente</option>
+                                    <option value="operator"   {{ $currentRole === 'operator'   ? 'selected' : '' }}>Operador (recarga + viajes)</option>
+                                    <option value="asistente"  {{ $currentRole === 'asistente'  ? 'selected' : '' }}>Asistente (conductores, viajes y billetera)</option>
+                                    <option value="admin"      {{ $currentRole === 'admin'      ? 'selected' : '' }}>Administrador (acceso total)</option>
                                 </select>
                                 <div class="form-text">
                                     <strong>Operador</strong>: acceso solo a Solicitudes de Recarga y Viajes.<br>
+                                    <strong>Asistente</strong>: acceso a Conductores, Viajes y Gestión de Billetera.<br>
                                     <strong>Admin</strong>: acceso completo al panel.
                                 </div>
                             </div>

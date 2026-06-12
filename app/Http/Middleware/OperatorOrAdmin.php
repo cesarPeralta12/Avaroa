@@ -28,7 +28,7 @@ class OperatorOrAdmin
 
         $role = $user->is_super_admin ? 'admin' : ($user->role ?? 'customer');
 
-        if (!in_array($role, ['admin', 'operator'])) {
+        if (!in_array($role, ['admin', 'operator', 'asistente'])) {
             Session::forget('LoggedIn');
             return redirect('admin/login')->with('fail', 'No tienes permisos para acceder al panel.');
         }

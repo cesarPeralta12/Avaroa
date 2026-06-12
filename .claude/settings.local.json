@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\cesar\\\\OneDrive\\\\Desktop\\\\AVAROA\" -Depth 1 | Where-Object { $_.Name -ne \"flutter\" } | Select-Object Name, PSIsContainer)"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\cesar\\\\OneDrive\\\\Desktop\\\\AVAROA\" -Depth 1 | Where-Object { $_.Name -ne \"flutter\" } | Select-Object Name, PSIsContainer)",
+      "PowerShell(head -20)"
     ]
   }
 }
