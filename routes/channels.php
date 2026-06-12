@@ -10,8 +10,8 @@ Broadcast::channel('delivery.requests.all', function (User $user) {
 });
 
 // Private driver channel
-Broadcast::channel('driver.{driverId}', function (User $user, int $driverId) {
-    return optional($user->driver)->id === $driverId;
+Broadcast::channel('driver.{driverId}', function (User $user, $driverId) {
+    return (int) optional($user->driver)->id === (int) $driverId;
 });
 
 // Private trip channel

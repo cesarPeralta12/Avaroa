@@ -33,6 +33,15 @@ class DriverController extends Controller
             return response()->json(['error' => 'Driver profile not found'], 404);
         }
 
+        // Block disabled drivers
+        if (!Auth::user()->is_active || in_array($driver->status, ['disabled', 'suspended', 'blocked'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tu cuenta ha sido deshabilitada. Contacta al soporte.',
+                'account_disabled' => true,
+            ], 403);
+        }
+
         // Check wallet balance (from your existing logic)
         $wallet = Auth::user()->wallet;
         $minBalance = config('app.min_driver_balance', 0);

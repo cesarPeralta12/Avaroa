@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\EarningsController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
@@ -104,8 +105,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // ================= DASHBOARD =================
     Route::get('/driver/dashboard', [DriverController::class, 'dashboard']);
 
-    // ================= BROADCAST AUTH (IMPORTANT FIX) =================
+    // ================= BROADCAST AUTH =================
     Route::post('/broadcasting/auth', function (Request $request) {
+        // Ensure the request has the authenticated user from Sanctum
+        $request->setUserResolver(fn() => Auth::guard('sanctum')->user() ?? Auth::user());
         return Broadcast::auth($request);
     });
 });
