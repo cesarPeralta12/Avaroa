@@ -27,12 +27,13 @@ return new class extends Migration
 
         // Seed default rates for every service type
         $services = [
-            ['service_type' => 'taxi',          'label' => 'Taxi',          'is_passenger' => true],
-            ['service_type' => 'mototaxi',       'label' => 'Mototaxi',      'is_passenger' => true],
-            ['service_type' => 'carga',          'label' => 'Carga',         'is_passenger' => false],
-            ['service_type' => 'carga_pequena',  'label' => 'Carga pequeña', 'is_passenger' => false],
-            ['service_type' => 'delivery',       'label' => 'Delivery',      'is_passenger' => false],
-            ['service_type' => 'compras',        'label' => 'Compras',       'is_passenger' => false],
+            // taxi = has passenger surcharge; mototaxi = no surcharge
+            ['service_type' => 'taxi',          'label' => 'Taxi',          'surcharge' => true],
+            ['service_type' => 'mototaxi',       'label' => 'Mototaxi',      'surcharge' => false],
+            ['service_type' => 'carga',          'label' => 'Carga',         'surcharge' => false],
+            ['service_type' => 'carga_pequena',  'label' => 'Carga pequeña', 'surcharge' => false],
+            ['service_type' => 'delivery',       'label' => 'Delivery',      'surcharge' => false],
+            ['service_type' => 'compras',        'label' => 'Compras',       'surcharge' => false],
         ];
 
         $now = now();
@@ -44,9 +45,9 @@ return new class extends Migration
                 'minimum_fare'              => 7.00,
                 'average_speed_kmh'         => 25.00,
                 'commission_rate'           => 0.1300,
-                'passenger_surcharge_from'  => $svc['is_passenger'] ? 4 : null,
-                'passenger_surcharge_per_head' => $svc['is_passenger'] ? 2.00 : null,
-                'max_passengers'            => $svc['is_passenger'] ? 4 : null,
+                'passenger_surcharge_from'  => $svc['surcharge'] ? 4 : null,
+                'passenger_surcharge_per_head' => $svc['surcharge'] ? 2.00 : null,
+                'max_passengers'            => $svc['surcharge'] ? 4 : null,
                 'created_at'                => $now,
                 'updated_at'                => $now,
             ]);

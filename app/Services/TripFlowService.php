@@ -96,7 +96,7 @@ class TripFlowService
             $calculatedFare = round($minutes * $perMinute, 2);
             $finalFare = max($calculatedFare, $minimumFare);
 
-            // Passenger surcharge for taxi/mototaxi
+            // Passenger surcharge for taxi only
             $passengers = (int) ($trip->passenger_count ?? 1);
             $surchargeFrom = $rates['surcharge_from'];
             $surchargePerHead = $rates['surcharge_per_head'];

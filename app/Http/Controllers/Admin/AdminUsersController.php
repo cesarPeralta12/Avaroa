@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 
 class AdminUsersController extends Controller
@@ -69,13 +70,19 @@ class AdminUsersController extends Controller
             'role'  => 'required|in:' . implode(',', self::ALLOWED_ROLES),
         ]);
 
-        $user->update([
+        $updateData = [
             'name'           => $data['name'],
             'email'          => $data['email'],
             'phone'          => $data['phone'],
-            'role'           => $data['role'],
             'is_super_admin' => $data['role'] === 'admin' ? 1 : 0,
-        ]);
+        ];
+
+        // role column is added by migration — safe to include only if it exists
+        if (Schema::hasColumn('users', 'role')) {
+            $updateData['role'] = $data['role'];
+        }
+
+        $user->update($updateData);
 
         return redirect()->route('admin.users.index')
             ->with('success', "Usuario {$user->name} actualizado correctamente.");
@@ -101,10 +108,11 @@ class AdminUsersController extends Controller
 
         $request->validate(['role' => 'required|in:' . implode(',', self::ALLOWED_ROLES)]);
 
-        $user->update([
-            'role'           => $request->role,
-            'is_super_admin' => $request->role === 'admin' ? 1 : 0,
-        ]);
+        $roleData = ['is_super_admin' => $request->role === 'admin' ? 1 : 0];
+        if (Schema::hasColumn('users', 'role')) {
+            $roleData['role'] = $request->role;
+        }
+        $user->update($roleData);
 
         return response()->json(['success' => true, 'role' => $request->role]);
     }

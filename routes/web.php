@@ -339,6 +339,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
 
         // Service Rates (per-service pricing & commission) — admin only
         Route::get('/service-rates', [ServiceRateController::class, 'index'])->name('admin.service-rates.index');
+        Route::post('/service-rates/commission', [ServiceRateController::class, 'updateCommission'])->name('admin.service-rates.commission');
         Route::put('/service-rates/{serviceRate}', [ServiceRateController::class, 'update'])->name('admin.service-rates.update');
 
         // Admin Users Management — admin only

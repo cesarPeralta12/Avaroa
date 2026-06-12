@@ -15,11 +15,41 @@
 
         <div class="row mb-3">
             <div class="col-12">
-                <h4 class="mb-0"><i class="fas fa-coins me-2"></i>Tarifas y Comisiones por Servicio</h4>
-                <p class="text-muted small mt-1">Configura el precio por minuto, tarifa mínima y comisión para cada tipo de servicio.</p>
+                <h4 class="mb-0"><i class="fas fa-coins me-2"></i>Tarifas y Configuración de Servicios</h4>
+                <p class="text-muted small mt-1">Configura el precio por minuto y tarifa mínima por tipo de servicio. La comisión se aplica igual a todos.</p>
             </div>
         </div>
 
+        {{-- COMISIÓN GLOBAL --}}
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-percentage me-2"></i>Comisión del Sistema (aplica a todos los servicios)</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ route('admin.service-rates.commission') }}" method="POST">
+                    @csrf
+                    <div class="row align-items-end g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Porcentaje de comisión</label>
+                            <div class="input-group">
+                                <input type="number" name="commission_rate_pct" class="form-control form-control-lg"
+                                    value="{{ round(($rates->first()?->commission_rate ?? 0.13) * 100, 2) }}"
+                                    min="0" max="100" step="0.5" required>
+                                <span class="input-group-text fs-5">%</span>
+                            </div>
+                            <small class="text-muted">Se descuenta del saldo del conductor al finalizar cada viaje.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-1"></i>Guardar comisión
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- TARIFAS POR SERVICIO --}}
         @foreach($rates as $rate)
         <div class="card mb-4">
             <div class="card-header d-flex align-items-center">
@@ -32,7 +62,7 @@
                     @method('PUT')
 
                     <div class="row g-3">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Precio por minuto (Bs)</label>
                             <div class="input-group">
                                 <span class="input-group-text">Bs</span>
@@ -40,7 +70,7 @@
                                     value="{{ $rate->price_per_minute }}" min="0.01" max="999" step="0.01" required>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Tarifa mínima (Bs)</label>
                             <div class="input-group">
                                 <span class="input-group-text">Bs</span>
@@ -48,7 +78,7 @@
                                     value="{{ $rate->minimum_fare }}" min="0" max="9999" step="0.50" required>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Velocidad promedio (km/h)</label>
                             <div class="input-group">
                                 <input type="number" name="average_speed_kmh" class="form-control"
@@ -56,20 +86,12 @@
                                 <span class="input-group-text">km/h</span>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Comisión del sistema (%)</label>
-                            <div class="input-group">
-                                <input type="number" name="commission_rate_pct" class="form-control"
-                                    value="{{ round($rate->commission_rate * 100, 2) }}" min="0" max="100" step="0.5" required>
-                                <span class="input-group-text">%</span>
-                            </div>
-                            <small class="text-muted">Se descuenta del saldo del conductor al finalizar.</small>
-                        </div>
 
-                        @if(in_array($rate->service_type, ['taxi', 'mototaxi']))
+                        {{-- Recargo de pasajeros: SOLO taxi --}}
+                        @if($rate->service_type === 'taxi')
                         <div class="col-12 mt-2">
                             <hr>
-                            <h6 class="text-primary mb-3"><i class="fas fa-users me-1"></i>Recargo por Pasajeros</h6>
+                            <h6 class="text-primary mb-3"><i class="fas fa-users me-1"></i>Recargo por Pasajeros (Taxi)</h6>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Cobrar extra a partir de (N°)</label>
@@ -78,7 +100,7 @@
                                     value="{{ $rate->passenger_surcharge_from }}" min="1" max="20" step="1">
                                 <span class="input-group-text">pasajeros</span>
                             </div>
-                            <small class="text-muted">Ej: 4 = a partir del 4° pasajero se cobra extra.</small>
+                            <small class="text-muted">Ej: 4 = del 4° pasajero en adelante se cobra extra.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Extra por pasajero adicional (Bs)</label>
@@ -100,11 +122,9 @@
                     </div>
 
                     <div class="mt-3 d-flex justify-content-between align-items-center">
-                        <small class="text-muted">
-                            Última actualización: {{ $rate->updated_at->diffForHumans() }}
-                        </small>
+                        <small class="text-muted">Actualizado: {{ $rate->updated_at->diffForHumans() }}</small>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Guardar cambios
+                            <i class="fas fa-save me-1"></i>Guardar
                         </button>
                     </div>
                 </form>
