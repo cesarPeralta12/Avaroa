@@ -6,6 +6,7 @@ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class Handler extends ExceptionHandler
 {
@@ -48,6 +49,30 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    /**
+     * Custom JSON response for validation errors.
+     * Garantiza que la API NUNCA devuelva un genérico "Validation Error":
+     * `message` siempre contiene el primer error específico (ej. "Este correo
+     * ya está registrado.") y `errors` mantiene el detalle por campo.
+     */
+    protected function invalidJson($request, ValidationException $exception)
+    {
+        $errors = $exception->errors();
+        $firstMessage = null;
+        foreach ($errors as $fieldErrors) {
+            if (is_array($fieldErrors) && !empty($fieldErrors)) {
+                $firstMessage = (string) $fieldErrors[0];
+                break;
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $firstMessage ?: 'Por favor, revisa los campos del formulario.',
+            'errors'  => $errors,
+        ], $exception->status);
     }
 
     /**

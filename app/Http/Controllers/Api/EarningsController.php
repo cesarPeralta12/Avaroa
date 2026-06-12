@@ -63,8 +63,8 @@ class EarningsController extends Controller
                 'monthlyEarnings' => round($monthlyEarnings, 2),
                 'totalTrips' => $totalTrips,
                 'totalOnlineHours' => round($totalOnlineHours, 1),
-                'ratePerMinute' => 1.20,
-                'commissionRate' => 0.13,
+                'ratePerMinute'  => (float) config('avaroa.fare.per_minute', 1.15),
+                'commissionRate' => (float) config('avaroa.fare.commission_rate', 0.13),
             ],
         ]);
     }
@@ -140,7 +140,7 @@ class EarningsController extends Controller
                     'amount' => $txn->amount,
                     'direction' => $txn->direction,
                     'description' => $isCommission
-                        ? 'Comisi¨®n Viaje #' . substr($txn->reference_id, -4)
+                        ? 'Comisiï¿½ï¿½n Viaje #' . substr($txn->reference_id, -4)
                         : ($txn->type === 'topup' ? 'Recarga Aprobada' : 'Ajuste'),
                     'date' => $txn->created_at,
                     'isCommission' => $isCommission,

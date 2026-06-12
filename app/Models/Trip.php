@@ -19,6 +19,7 @@ class Trip extends Model
         'vehicle_id',
         'vehicle_type',
         'service_type',
+        'requires_pod',
         'origin_url',
         'origin_lat',
         'origin_lng',
@@ -61,6 +62,7 @@ class Trip extends Model
     
     // Add casts for date fields
     protected $casts = [
+        'requires_pod' => 'boolean',
         'accepted_at' => 'datetime',
         'driver_arrived_at' => 'datetime',
         'picked_up_at' => 'datetime',
@@ -74,6 +76,99 @@ class Trip extends Model
     ];
     
     protected $appends = ['status_color'];
+
+    /**
+     * Devuelve true si el servicio del viaje requiere prueba de entrega.
+     * Si el campo `requires_pod` no está definido (viajes legacy), se infiere
+     * desde el catálogo `config('avaroa.services')` a partir de `service_type`.
+     *
+     * Servicios de pasajeros (taxi, mototaxi) → false → botón "Finalizar Viaje".
+     * Servicios de delivery/carga/compras → true → flujo con foto/firma/destinatario.
+     */
+    /**
+     * Devuelve si el servicio de este viaje es de pasajeros (taxi, mototaxi).
+     * Determina el vocabulario que se usa en los mensajes al cliente:
+     * "conductor" y "viaje" para pasajeros vs. "mensajero" y "entrega" para delivery.
+     */
+    public function isPassengerService(): bool
+    {
+        $key = strtolower((string) $this->service_type);
+        $svc = config('avaroa.services.' . $key);
+        if (is_array($svc) && array_key_exists('is_passenger', $svc)) {
+            return (bool) $svc['is_passenger'];
+        }
+        return in_array($key, ['taxi', 'mototaxi'], true);
+    }
+
+    /**
+     * Vocabulario de mensajes adaptado al tipo de servicio. Usado por el bot
+     * de WhatsApp y los handlers de notificación al cliente.
+     *
+     *  - role            → "conductor" / "mensajero"
+     *  - role_cap        → "Conductor" / "Mensajero"
+     *  - subject         → "viaje" / "entrega"
+     *  - subject_cap     → "Viaje" / "Entrega"
+     *  - assigned_title  → "¡Conductor asignado!" / "¡Mensajero asignado!"
+     *  - arrived_title   → "¡Tu conductor llegó!" / "¡Tu mensajero llegó!"
+     *  - arrived_detail  → "Listo para que subas." / "Ya está en el punto de recogida del paquete."
+     *  - started_title   → "¡Viaje iniciado!" / "¡Entrega en camino!"
+     *  - started_detail  → "Vamos hacia tu destino." / "Tu paquete va en camino al destino."
+     *  - completed_title → "¡Viaje completado!" / "¡Entrega completada!"
+     *  - completed_thanks→ "Gracias por viajar con AVAROA 🚕" / "Gracias por usar AVAROA 🚚"
+     *  - en_route_detail → "El conductor va hacia tu ubicación." / "El mensajero va hacia el punto de recogida."
+     */
+    public function messageVocabulary(): array
+    {
+        if ($this->isPassengerService()) {
+            return [
+                'role'             => 'conductor',
+                'role_cap'         => 'Conductor',
+                'subject'          => 'viaje',
+                'subject_cap'      => 'Viaje',
+                'assigned_title'   => '¡Conductor asignado!',
+                'arrived_title'    => '¡Tu conductor llegó!',
+                'arrived_detail'   => 'Está esperándote en el punto de recogida. Puedes subir 🚕',
+                'started_title'    => '¡Viaje iniciado!',
+                'started_detail'   => 'Vamos en camino a tu destino.',
+                'completed_title'  => '¡Viaje completado!',
+                'completed_thanks' => 'Gracias por viajar con AVAROA 🚕',
+                'en_route_title'   => 'Tu conductor está en camino',
+                'en_route_detail'  => 'El conductor va hacia tu ubicación de recogida.',
+                'emoji'            => '🚕',
+            ];
+        }
+
+        return [
+            'role'             => 'mensajero',
+            'role_cap'         => 'Mensajero',
+            'subject'          => 'entrega',
+            'subject_cap'      => 'Entrega',
+            'assigned_title'   => '¡Mensajero asignado!',
+            'arrived_title'    => '¡Tu mensajero llegó al punto de recogida!',
+            'arrived_detail'   => 'Listo para retirar el paquete 📦',
+            'started_title'    => '¡Tu paquete está en camino!',
+            'started_detail'   => 'El mensajero va con tu paquete hacia el destino.',
+            'completed_title'  => '¡Entrega completada!',
+            'completed_thanks' => 'Gracias por usar AVAROA 🚚',
+            'en_route_title'   => 'Tu mensajero está en camino',
+            'en_route_detail'  => 'Va hacia el punto de recogida del paquete.',
+            'emoji'            => '🚚',
+        ];
+    }
+
+    public function requiresProofOfDelivery(): bool
+    {
+        if ($this->requires_pod !== null) {
+            return (bool) $this->requires_pod;
+        }
+        $key = strtolower((string) $this->service_type);
+        $svc = config('avaroa.services.' . $key);
+        if (is_array($svc) && array_key_exists('requires_proof_of_delivery', $svc)) {
+            return (bool) $svc['requires_proof_of_delivery'];
+        }
+        // Fallback conservador: si no sabemos qué servicio es, NO forzamos POD.
+        return !in_array($key, ['taxi', 'mototaxi'], true);
+    }
 
     public function getStatusColorAttribute(): string
     {

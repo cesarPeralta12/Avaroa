@@ -29,8 +29,8 @@ class ForgotPasswordController extends Controller
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string|exists:users,whatsapp_number',
         ], [
-            'phone.required' => 'El número de teléfono es requerido',
-            'phone.exists'   => 'Este número no está registrado',
+            'phone.required' => 'El número de teléfono es obligatorio.',
+            'phone.exists'   => 'Este número no está registrado.',
         ]);
 
         if ($validator->fails()) {
@@ -134,10 +134,11 @@ class ForgotPasswordController extends Controller
             'phone' => 'required|string|exists:users,whatsapp_number',
             'otp'   => 'required|string|size:6',
         ], [
-            'phone.required' => 'El número de teléfono es requerido',
-            'phone.exists'   => 'Este número no está registrado',
-            'otp.required'   => 'El código es requerido',
-            'otp.size'       => 'El código debe tener 6 dígitos',
+            'phone.required' => 'El número de teléfono es obligatorio.',
+            'phone.exists'   => 'Este número no está registrado.',
+            'otp.required'   => 'El código de verificación es obligatorio.',
+            'otp.size'       => 'El código de verificación debe tener 6 dígitos.',
+            'otp.digits'     => 'El código de verificación es incorrecto.',
         ]);
 
         if ($validator->fails()) {
@@ -157,7 +158,7 @@ class ForgotPasswordController extends Controller
         if (!$resetOtp) {
             return response()->json([
                 'success' => false,
-                'message' => 'Código inválido o expirado',
+                'message' => 'El código de verificación es incorrecto o ha expirado. Por favor, solicita uno nuevo.',
                 'error'   => 'invalid_otp',
             ], 400);
         }
@@ -188,9 +189,9 @@ class ForgotPasswordController extends Controller
         ], [
             'phone.required'                 => 'El número de teléfono es requerido',
             'phone.exists'                   => 'Este número no está registrado',
-            'reset_token.required'           => 'Token de reset requerido',
-            'password.required'              => 'La contraseña es requerida',
-            'password.min'                   => 'Mínimo 6 caracteres',
+            'reset_token.required'           => 'El token de recuperación es obligatorio.',
+            'password.required'              => 'La contraseña es obligatoria.',
+            'password.min'                   => 'La contraseña debe tener al menos 6 caracteres.',
             'password_confirmation.same'     => 'Las contraseñas no coinciden',
         ]);
 
@@ -257,8 +258,8 @@ class ForgotPasswordController extends Controller
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string|exists:users,whatsapp_number',
         ], [
-            'phone.required' => 'El número de teléfono es requerido',
-            'phone.exists'   => 'Este número no está registrado',
+            'phone.required' => 'El número de teléfono es obligatorio.',
+            'phone.exists'   => 'Este número no está registrado.',
         ]);
 
         if ($validator->fails()) {

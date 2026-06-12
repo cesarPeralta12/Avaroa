@@ -27,60 +27,43 @@ class DriverAssignmentService
     protected array $finishTripKeywords = ['finish', 'finalizar viaje', 'terminar viaje', 'viaje terminado', 'viaje finalizado', 'llegue destino', 'llegué destino'];
 
     /**
-     * CRITICAL FIX: Base type mapping unifies customer categories with driver subtypes.
-     * Now includes all 6 vehicle types: moto, automovil, minivan, camioneta, torito, bicicleta
+     * Catálogo oficial AVAROA: 6 tipos canónicos. Cada uno acepta varios alias
+     * legacy (almacenados en BD desde versiones anteriores) para retro-compat.
      */
     protected array $baseVehicleTypeMap = [
-        'moto'        => ['moto', 'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi', 'motorcycle'],
-        'automovil'   => ['automovil', 'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla', 'carro', 'sedan', 'sedán', 'car'],
-        'minivan'     => ['minivan', 'vagoneta', 'van', 'furgon', 'furgón', 'suv'],
-        'camioneta'   => ['camioneta', 'camion', 'camión', 'truck', 'pickup', 'pick up', 'torito'],
-        'torito'      => ['torito', 'motocarro', 'triciclo'],
-        'bicicleta'   => ['bicicleta', 'bici', 'bike', 'bicycle'],
+        'moto'      => ['moto', 'motocicleta', 'motorcycle', 'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi'],
+        'auto'      => ['auto', 'automovil', 'automóvil', 'car', 'carro', 'sedan', 'sedán', 'movil', 'movil_ipsum', 'movil_parrilla'],
+        'minivan'   => ['minivan', 'vagoneta', 'movil_vagoneta', 'van', 'furgon', 'furgón', 'suv'],
+        'camion'    => ['camion', 'camión', 'camioneta', 'truck', 'pickup', 'pick up'],
+        'torito'    => ['torito', 'motocarro', 'triciclo'],
+        'bicicleta' => ['bicicleta', 'bici', 'bike', 'bicycle'],
     ];
 
     protected array $vehicleLabels = [
-        'moto' => 'Moto',
-        'moto_restaurant' => 'Moto Restaurant',
-        'moto_veloz' => 'Moto Veloz',
-        'moto_socorro' => 'Moto Socorro',
-        'moto_taxi' => 'Moto Taxi',
-        'automovil' => 'Automóvil',
-        'movil' => 'Móvil',
-        'movil_vagoneta' => 'Móvil Vagoneta',
-        'movil_ipsum' => 'Móvil Ipsum',
-        'movil_parrilla' => 'Móvil Parrilla',
-        'minivan' => 'Minivan',
-        'vagoneta' => 'Vagoneta',
-        'van' => 'Van',
-        'camioneta' => 'Camioneta',
-        'camion' => 'Camión',
-        'camión' => 'Camión',
-        'truck' => 'Truck',
-        'pickup' => 'Pickup',
-        'pick up' => 'Pick Up',
-        'torito' => 'Torito',
-        'bicicleta' => 'Bicicleta',
-        'bici' => 'Bici',
-        'bike' => 'Bike',
-        'bicycle' => 'Bicycle'
+        'moto'      => '🛵 Motocicleta',
+        'auto'      => '🚗 Auto',
+        'minivan'   => '🚐 Minivan',
+        'camion'    => '🚚 Camión',
+        'torito'    => '🚜 Torito',
+        'bicicleta' => '🚲 Bicicleta',
     ];
 
     /**
-     * Service type mapping for mixed flow logic
-     * Determines if a service requires POD (Proof of Delivery)
+     * Configuración por tipo de servicio.
+     * `requires_pod`=false → "Finalizar Viaje" simple sin foto/firma/destinatario.
      */
     protected array $serviceTypeConfig = [
-        // Taxi/Passenger services - NO POD required
         'mototaxi'      => ['requires_pod' => false, 'type' => 'taxi'],
         'taxi'          => ['requires_pod' => false, 'type' => 'taxi'],
 
-        // Delivery/Cargo services - POD required
-        'moto_flash'    => ['requires_pod' => true, 'type' => 'delivery'],
-        'flash'         => ['requires_pod' => true, 'type' => 'delivery'],
-        'delivery'      => ['requires_pod' => true, 'type' => 'delivery'],
-        'cargo'         => ['requires_pod' => true, 'type' => 'delivery'],
-        'small_cargo'   => ['requires_pod' => true, 'type' => 'delivery'],
+        'delivery'      => ['requires_pod' => true,  'type' => 'delivery'],
+        'compras'       => ['requires_pod' => true,  'type' => 'delivery'],
+        'cargo'         => ['requires_pod' => true,  'type' => 'delivery'],
+        'carga'         => ['requires_pod' => true,  'type' => 'delivery'],
+        'carga_pequena' => ['requires_pod' => true,  'type' => 'delivery'],
+        'small_cargo'   => ['requires_pod' => true,  'type' => 'delivery'],
+        'moto_flash'    => ['requires_pod' => true,  'type' => 'delivery'],
+        'flash'         => ['requires_pod' => true,  'type' => 'delivery'],
     ];
 
     public function __construct(MetaWhatsAppService $metaWhatsApp)
@@ -223,7 +206,8 @@ class DriverAssignmentService
      */
     protected function getMatchingVehicleTypes(string $baseType): array
     {
-        return $this->baseVehicleTypeMap[$baseType] ?? [$baseType];
+        $canonical = Vehicle::canonicalType($baseType) ?? $baseType;
+        return $this->baseVehicleTypeMap[$canonical] ?? [$baseType];
     }
 
     /**
@@ -252,7 +236,7 @@ class DriverAssignmentService
 
         $vehicleType = $trip->vehicle_type;
         $matchingTypes = $this->getMatchingVehicleTypes($vehicleType);
-        $vehicleLabel = $this->vehicleLabels[$vehicleType] ?? $vehicleType;
+        $vehicleLabel = $this->vehicleLabels[Vehicle::canonicalType($vehicleType)] ?? Vehicle::label($vehicleType);
 
         Log::info('Starting broadcast to online drivers', [
             'trip_id' => $trip->id,
@@ -858,23 +842,31 @@ class DriverAssignmentService
 
     protected function notifyCustomerDriverAssigned(Trip $trip, Driver $driver, ?Vehicle $vehicle): void
     {
-        $priceFormatted = $trip->price ? 'Bs ' . number_format($trip->price, 2, '.', '') : 'Bs 0';
+        $voc = $trip->messageVocabulary();
+        $isPassenger = $trip->isPassengerService();
 
-        $driverName = $driver->user->name ?? 'Mensajero';
+        $priceFormatted = $trip->price ? 'Bs ' . number_format($trip->price, 2, '.', '') : 'Bs 0';
+        $driverName  = $driver->user->name ?? $voc['role_cap'];
         $driverPhone = $driver->user->whatsapp_number ?? 'N/A';
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
-        $requiresPod = $this->serviceRequiresPod($trip);
-        $serviceLabel = $requiresPod ? 'Entrega' : 'Viaje';
+        $serviceLabel = strtoupper((string) $trip->service_type ?: $voc['subject']);
+        $closingLine = $isPassenger
+            ? '🚕 El conductor va camino a recogerte.'
+            : '🚚 El mensajero va camino al punto de recogida del paquete.';
 
-        $message = "✅ *¡" . strtoupper($serviceLabel) . " asignado!*\n\n" .
-            "👤 *Nombre:* {$driverName}\n" .
-            "{$vehicleDisplay}\n" .
-            "📱 *Teléfono:* {$driverPhone}\n\n" .
+        $message =
+            "✅ *{$voc['assigned_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
+            "📱 *Teléfono:* {$driverPhone}\n" .
+            "🛎️ *Servicio:* {$serviceLabel}\n\n" .
+            "{$vehicleDisplay}\n\n" .
             "💰 *Precio:* {$priceFormatted}\n\n" .
-            "🚚 El conductor ya va hacia tu ubicación de recogida.";
+            $closingLine;
 
-        $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+        if ($trip->customer && $trip->customer->whatsapp_number) {
+            $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+        }
     }
 
     protected function buildVehicleDescription(?Vehicle $vehicle): string
@@ -911,18 +903,28 @@ class DriverAssignmentService
     protected function formatVehicleForDisplay(?Vehicle $vehicle): string
     {
         if (!$vehicle) {
-            return '🚗 Vehículo no especificado';
+            return '🚗 *Vehículo:* No especificado';
         }
 
-        $description = $this->buildVehicleDescription($vehicle);
-        $plate = $vehicle->plate_number ?? 'N/A';
-        $typeLabel = $vehicle->vehicle_type_label ?? $this->vehicleLabels[$vehicle->type] ?? $vehicle->type ?? 'Vehículo';
+        $typeLabel = $vehicle->vehicle_type_label
+            ?? ($this->vehicleLabels[Vehicle::canonicalType($vehicle->type)] ?? null)
+            ?? $vehicle->type
+            ?? 'Vehículo';
 
-        if ($description === $typeLabel || $description === 'Vehículo') {
-            return "🚗 {$typeLabel} - Placa: {$plate}";
+        $lines = ["🚗 *Vehículo:* {$typeLabel}"];
+
+        if (!empty($vehicle->model)) {
+            $lines[] = "🏷️ *Modelo:* " . trim($vehicle->model);
+        }
+        if (!empty($vehicle->color)) {
+            $lines[] = "🎨 *Color:* " . trim($vehicle->color);
+        }
+        $plate = $vehicle->plate_number ?? null;
+        if (!empty($plate)) {
+            $lines[] = "🔢 *Placa:* " . strtoupper(trim($plate));
         }
 
-        return "🚗 {$description} - Placa: {$plate}";
+        return implode("\n", $lines);
     }
 
     public function updateTripStatus(int $tripId, string $status): void
@@ -981,17 +983,30 @@ class DriverAssignmentService
 
         $session = ConversationSession::where('trip_id', $tripId)->first();
 
-        $driver = Driver::find($trip->driver_id);
+        $driver = Driver::with('user')->find($trip->driver_id);
         $vehicle = Vehicle::find($trip->vehicle_id);
-        $driverName = $driver?->user?->name ?? 'Mensajero';
-        $vehicleDisplay = $vehicle ? $this->formatVehicleForDisplay($vehicle) : '🚗 Vehículo no especificado';
+        $voc = $trip->messageVocabulary();
+        $driverName = $driver?->user?->name ?? $voc['role_cap'];
+        $vehicleDisplay = $vehicle ? $this->formatVehicleForDisplay($vehicle) : '🚗 *Vehículo:* No especificado';
 
         $customerMessage = match ($status) {
-            'en_route' => "🚚 *Tu mensajero está en camino*\n\n👤 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nSe dirige a tu ubicación de recogida.",
-            'arrived' => "📍 *Tu mensajero ha llegado*\n\n👤 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nYa está en el punto de recogida.",
-            'in_progress' => "✅ *¡Viaje iniciado!*\n\n👤 *Mensajero:* {$driverName}\n{$vehicleDisplay}\n\nYendo al destino final.",
+            'en_route' =>
+                "{$voc['emoji']} *{$voc['en_route_title']}*\n\n" .
+                "👤 *{$voc['role_cap']}:* {$driverName}\n" .
+                "{$vehicleDisplay}\n\n" .
+                $voc['en_route_detail'],
+            'arrived' =>
+                "📍 *{$voc['arrived_title']}*\n\n" .
+                "👤 *{$voc['role_cap']}:* {$driverName}\n" .
+                "{$vehicleDisplay}\n\n" .
+                $voc['arrived_detail'],
+            'in_progress' =>
+                "{$voc['emoji']} *{$voc['started_title']}*\n\n" .
+                "👤 *{$voc['role_cap']}:* {$driverName}\n" .
+                "{$vehicleDisplay}\n\n" .
+                $voc['started_detail'],
             'completed' => null,
-            default => null
+            default => null,
         };
 
         if ($customerMessage && $trip->customer && $trip->customer->whatsapp_number) {

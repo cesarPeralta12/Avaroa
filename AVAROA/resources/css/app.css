@@ -1,9 +1,0 @@
-@import "tailwindcss";
-
-@source "../../resources/**/*.blade.php";
-@source "../../resources/**/*.js";
-@source "../../resources/**/*.vue";
-
-@theme {
-  /* Your custom theme variables go here */
-}

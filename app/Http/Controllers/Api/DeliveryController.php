@@ -61,7 +61,7 @@ class DeliveryController extends Controller
         $acceptedTrip        = null;
 
         try {
-            // ── 1. ONLY DB WORK inside the transaction ──────────────────────────
+            // â”€â”€ 1. ONLY DB WORK inside the transaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             // Broadcasts and WhatsApp calls happen AFTER the transaction commits
             // so the DB lock is released quickly and the app gets a fast response.
             $txResult = DB::transaction(function () use ($tripId, $driver,
@@ -90,7 +90,7 @@ class DeliveryController extends Controller
                         'early_exit' => true,
                         'response' => response()->json([
                             'success' => false,
-                            'message' => 'Saldo insuficiente para comisión',
+                            'message' => 'Saldo insuficiente para comisiÃ³n',
                             'required' => $estimatedCommission,
                             'current' => $wallet?->balance ?? 0,
                         ], 403),
@@ -140,7 +140,7 @@ class DeliveryController extends Controller
 
             $acceptedTrip = $txResult['trip'];
 
-            // ── 2. BROADCASTS (outside transaction — fast) ──────────────────────
+            // â”€â”€ 2. BROADCASTS (outside transaction â€” fast) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             try {
                 broadcast(new DeliveryAccepted($acceptedTrip, $driver, $otherDriverIds));
                 broadcast(new TripStatusChanged($acceptedTrip, $previousStatus, [
@@ -151,7 +151,7 @@ class DeliveryController extends Controller
                 Log::error('Broadcast failed: ' . $e->getMessage());
             }
 
-            // ── 3. WHATSAPP NOTIFICATIONS (outside transaction — potentially slow) ──
+            // â”€â”€ 3. WHATSAPP NOTIFICATIONS (outside transaction â€” potentially slow) â”€â”€
             try {
                 $this->notifyCustomerAssigned($acceptedTrip, $driver);
             } catch (\Exception $e) {
@@ -246,7 +246,7 @@ class DeliveryController extends Controller
 
                 // CRITICAL FIX: Include service type and POD requirement
                 'service_type' => $trip->service_type ?? 'delivery',
-                'requires_pod' => (bool) ($trip->requires_pod ?? true),
+                'requires_pod' => $trip->requiresProofOfDelivery(),
             ];
         })->filter()->values();
 
@@ -338,8 +338,8 @@ class DeliveryController extends Controller
 
         $trip->update($updateData);
 
-        // ── Notifications & broadcasts AFTER the HTTP response is sent ────────
-        // WhatsApp API calls can take 10–30 s. Broadcasts add another few seconds.
+        // â”€â”€ Notifications & broadcasts AFTER the HTTP response is sent â”€â”€â”€â”€â”€â”€â”€â”€
+        // WhatsApp API calls can take 10â€“30 s. Broadcasts add another few seconds.
         // app()->terminating() fires these AFTER $response->send() returns, so
         // the app receives the JSON instantly and the UI updates without delay.
         $statusVal    = $request->status;
@@ -385,34 +385,43 @@ class DeliveryController extends Controller
 
         $phone = $trip->customer->whatsapp_number;
         $orderId = $trip->id;
-        $driverName = $driver->user->name ?? 'Mensajero';
-        $requiresPod = (bool) ($trip->requires_pod ?? true);
+        $voc = $trip->messageVocabulary();
+        $driverName = $driver->user->name ?? $voc['role_cap'];
+        $isPassenger = $trip->isPassengerService();
+        $emoji = $voc['emoji'];
+        $roleCap = $voc['role_cap'];
+        $role = $voc['role'];
+        $subjectCap = $voc['subject_cap'];
 
         $message = match ($status) {
-            'driver_arrived' => "📍 Actualización de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
+            'driver_arrived' =>
+                "📍 *Actualización de {$voc['subject']}*\n\n" .
                 "Pedido: #{$orderId}\n\n" .
-                "✅ El " . ($requiresPod ? 'mensajero' : 'conductor') . " ha llegado al punto de " . ($requiresPod ? 'recojo' : 'recogida') . ".\n" .
-                ($requiresPod ? "Tu pedido está por ser retirado." : "El pasajero puede subir.") . "\n\n" .
-                "👤 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
+                "✅ El {$role} ha llegado al punto de recogida.\n" .
+                ($isPassenger ? 'Puedes subir 🚕' : 'Tu paquete está por ser retirado 📦') . "\n\n" .
+                "👤 *{$roleCap}:* {$driverName}",
 
-            'picked_up' => "📦 Actualización de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
+            'picked_up' =>
+                ($isPassenger ? "🚕" : "📦") . " *Actualización de {$voc['subject']}*\n\n" .
                 "Pedido: #{$orderId}\n\n" .
-                ($requiresPod
-                    ? "✅ El mensajero confirmó el recojo de tu pedido.\nAhora se dirige al punto de entrega."
-                    : "✅ El conductor recogió al pasajero.\nYendo al destino final.") . "\n\n" .
-                "👤 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
+                ($isPassenger
+                    ? "✅ El conductor te recogió.\nVamos en camino a tu destino."
+                    : "✅ El mensajero confirmó el recojo de tu paquete.\nAhora se dirige al punto de entrega.") . "\n\n" .
+                "👤 *{$roleCap}:* {$driverName}",
 
-            'in_progress' => "🚚 Actualización de " . ($requiresPod ? 'entrega' : 'viaje') . "\n\n" .
+            'in_progress' =>
+                "{$emoji} *{$subjectCap} en progreso*\n\n" .
                 "Pedido: #{$orderId}\n\n" .
-                ($requiresPod
-                    ? "✅ Tu pedido está en camino.\nEl mensajero se dirige a tu ubicación."
-                    : "✅ El viaje está en progreso.\nYendo al destino final.") . "\n\n" .
-                "👤 " . ($requiresPod ? 'Mensajero' : 'Conductor') . ": {$driverName}",
+                ($isPassenger
+                    ? "✅ Vamos en camino a tu destino."
+                    : "✅ Tu paquete está en camino al destino.") . "\n\n" .
+                "👤 *{$roleCap}:* {$driverName}",
 
-            'cancelled' => "❌ " . ($requiresPod ? 'Entrega' : 'Viaje') . " cancelado\n\n" .
+            'cancelled' =>
+                "❌ *{$subjectCap} cancelado*\n\n" .
                 "Pedido: #{$orderId}\n\n" .
-                "Lo sentimos, el " . ($requiresPod ? 'mensajero' : 'conductor') . " ha cancelado.\n" .
-                "Estamos buscando otro " . ($requiresPod ? 'mensajero' : 'conductor') . " para ti.\n\n" .
+                "Lo sentimos, el {$role} canceló.\n" .
+                "Estamos buscando otro {$role} para ti.\n\n" .
                 "Motivo: " . ($trip->cancellation_reason ?? 'No especificado'),
 
             default => null,
@@ -645,7 +654,7 @@ class DeliveryController extends Controller
         }
 
         // CRITICAL FIX: Verify this is a taxi/passenger service that does NOT require POD
-        if ($trip->requires_pod) {
+        if ($trip->requiresProofOfDelivery()) {
             return response()->json([
                 'success' => false,
                 'message' => 'This trip requires POD. Use the POD completion endpoint instead.',
@@ -766,27 +775,25 @@ class DeliveryController extends Controller
 
         $phone = $trip->customer->whatsapp_number;
         $orderId = $trip->id;
-        $driverName = $driver->user->name ?? 'Mensajero';
-        $requiresPod = (bool) ($trip->requires_pod ?? true);
+        $voc = $trip->messageVocabulary();
+        $driverName = $driver->user->name ?? $voc['role_cap'];
+        $isPassenger = $trip->isPassengerService();
+        $deliveryDateTime = now()->format('d/m/Y H:i');
 
-        if ($requiresPod && $pod) {
+        if (!$isPassenger && $pod) {
             $receiverName = $pod->receiver_name ?? 'No especificado';
-            $deliveryDateTime = now()->format('d/m/Y H:i');
-
-            $message = "✅ Entrega completada\n\n" .
+            $message = "✅ *{$voc['completed_title']}*\n\n" .
                 "Pedido: #{$orderId}\n" .
                 "Recibido por: {$receiverName}\n" .
                 "Fecha y hora: {$deliveryDateTime}\n" .
-                "👤 Mensajero: {$driverName}\n\n" .
-                "Gracias por usar nuestro servicio. 🚚";
+                "👤 *{$voc['role_cap']}:* {$driverName}\n\n" .
+                $voc['completed_thanks'];
         } else {
-            $deliveryDateTime = now()->format('d/m/Y H:i');
-
-            $message = "✅ Viaje completado\n\n" .
+            $message = "✅ *{$voc['completed_title']}*\n\n" .
                 "Pedido: #{$orderId}\n" .
                 "Fecha y hora: {$deliveryDateTime}\n" .
-                "👤 Conductor: {$driverName}\n\n" .
-                "Gracias por viajar con nosotros. 🚕";
+                "👤 *{$voc['role_cap']}:* {$driverName}\n\n" .
+                $voc['completed_thanks'];
         }
 
         try {
@@ -798,7 +805,7 @@ class DeliveryController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send completion notification', [
                 'trip_id' => $trip->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -908,7 +915,7 @@ class DeliveryController extends Controller
 
                 // CRITICAL FIX: Include service type and POD info
                 'service_type' => $trip->service_type ?? 'delivery',
-                'requires_pod' => (bool) ($trip->requires_pod ?? true),
+                'requires_pod' => $trip->requiresProofOfDelivery(),
                 'has_pod' => (bool) $trip->pod_id,
             ];
         });
@@ -940,8 +947,9 @@ class DeliveryController extends Controller
 
     protected function notifyDriverRejected(Driver $driver, Trip $trip): void
     {
-        $message = "❌ La entrega #{$trip->id} fue asignada a otro mensajero.\n" .
-            "Esperando nuevas oportunidades...";
+        $voc = $trip->messageVocabulary();
+        $message = "❌ El {$voc['subject']} #{$trip->id} fue asignado a otro {$voc['role']}.\n" .
+            "Te avisaremos cuando llegue otra oportunidad.";
 
         $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
     }
@@ -949,9 +957,11 @@ class DeliveryController extends Controller
     protected function notifyCustomerAssigned(Trip $trip, Driver $driver): void
     {
         $whatsappService = app(\App\Services\MetaWhatsAppService::class);
-        $language = ConversationSession::where('trip_id', $trip->id)->value('language') ?? 'es';
 
-        $driverName = $driver->user->name ?? 'Mensajero';
+        $voc = $trip->messageVocabulary();
+        $isPassenger = $trip->isPassengerService();
+        $driverName = $driver->user->name ?? $voc['role_cap'];
+        $driverPhone = $driver->user->whatsapp_number ?? 'N/A';
         $priceFormatted = 'Bs ' . number_format($trip->price ?? 0, 2);
 
         $templateSent = $whatsappService->sendTemplateMessage(
@@ -965,42 +975,70 @@ class DeliveryController extends Controller
 
         if (!$templateSent) {
             $vehicle = \App\Models\Vehicle::where('driver_id', $driver->id)->first();
-            $requiresPod = (bool) ($trip->requires_pod ?? true);
+            $vehicleDisplay = $this->formatVehicleForCustomer($vehicle);
 
-            $message = "✅ *" . ($requiresPod ? 'Mensajero' : 'Conductor') . " asignado*\n\n" .
-                "👤 *Nombre:* " . $driverName . "\n";
+            $serviceLabel = strtoupper((string) ($trip->service_type ?: $voc['subject']));
+            $closingLine = $isPassenger
+                ? '🚕 El conductor va camino a recogerte.'
+                : '🚚 El mensajero va camino al punto de recogida del paquete.';
 
-            if ($vehicle) {
-                $message .= "🚗 *Vehículo:* " . ($vehicle->type ?? 'Vehículo') . "\n" .
-                           "🔢 *Placa:* " . ($vehicle->plate_number ?? 'N/A') . "\n";
-            }
-
-            $message .= "📱 *Contacto:* " . ($driver->user->whatsapp_number ?? 'N/A') . "\n" .
-                "💰 *Precio:* " . $priceFormatted . "\n\n" .
-                "¡Tu " . ($requiresPod ? 'mensajero' : 'conductor') . " está en camino! 🚚\n\n" .
+            $message =
+                "✅ *{$voc['assigned_title']}*\n\n" .
+                "👤 *{$voc['role_cap']}:* {$driverName}\n" .
+                "📱 *Teléfono:* {$driverPhone}\n" .
+                "🛎️ *Servicio:* {$serviceLabel}\n\n" .
+                "{$vehicleDisplay}\n\n" .
+                "💰 *Precio:* {$priceFormatted}\n\n" .
+                $closingLine . "\n\n" .
                 "Envía *ESTADO* para actualizaciones.";
 
             $whatsappService->sendMessage($trip->customer->whatsapp_number, $message);
         }
     }
 
+    /**
+     * Ficha del vehículo lista para mostrar al cliente: tipo, modelo, color y placa.
+     */
+    protected function formatVehicleForCustomer(?\App\Models\Vehicle $vehicle): string
+    {
+        if (!$vehicle) {
+            return '🚗 *Vehículo:* No especificado';
+        }
+
+        $typeLabel = $vehicle->vehicle_type_label
+            ?? \App\Models\Vehicle::label($vehicle->type)
+            ?? 'Vehículo';
+
+        $lines = ["🚗 *Vehículo:* {$typeLabel}"];
+        if (!empty($vehicle->model)) {
+            $lines[] = "🏷️ *Modelo:* " . trim($vehicle->model);
+        }
+        if (!empty($vehicle->color)) {
+            $lines[] = "🎨 *Color:* " . trim($vehicle->color);
+        }
+        if (!empty($vehicle->plate_number)) {
+            $lines[] = "🔢 *Placa:* " . strtoupper(trim($vehicle->plate_number));
+        }
+
+        return implode("\n", $lines);
+    }
+
     protected function notifyCustomerDelivered(Trip $trip, Driver $driver, ProofOfDelivery $pod): void
     {
         try {
             $whatsappService = app(MetaWhatsAppService::class);
-            $language = ConversationSession::where('trip_id', $trip->id)->value('language') ?? 'es';
+            $voc = $trip->messageVocabulary();
+            $isPassenger = $trip->isPassengerService();
+            $driverName = $driver->user->name ?? $voc['role_cap'];
 
-            $message = $language === 'es'
-                ? "✅ ¡Entrega completada!\\n\\n" .
-                  "Pedido: #{$trip->id}\\n" .
-                  "Recibido por: {$pod->receiver_name}\\n" .
-                  "Fecha: " . now()->format('d/m/Y H:i') . "\\n\\n" .
-                  "Gracias por usar nuestro servicio!"
-                : "✅ Delivery completed!\\n\\n" .
-                  "Order: #{$trip->id}\\n" .
-                  "Received by: {$pod->receiver_name}\\n" .
-                  "Date: " . now()->format('Y-m-d H:i') . "\\n\\n" .
-                  "Thank you for using our service!";
+            $message = "✅ *{$voc['completed_title']}*\n\n" .
+                "Pedido: #{$trip->id}\n" .
+                ($isPassenger
+                    ? ""
+                    : "Recibido por: {$pod->receiver_name}\n") .
+                "Fecha: " . now()->format('d/m/Y H:i') . "\n" .
+                "👤 *{$voc['role_cap']}:* {$driverName}\n\n" .
+                $voc['completed_thanks'];
 
             $whatsappService->sendMessage($trip->customer->whatsapp_number, $message);
         } catch (\Exception $e) {

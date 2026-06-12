@@ -55,9 +55,10 @@ class Wallet extends Model
 
         // Reset expiration tracking on new recharge
         if ($type === 'topup') {
+            $days = (int) config('avaroa.wallet.expiration_days', 30);
             $this->update([
                 'last_recharge_date' => now(),
-                'balance_expiration_date' => now()->addDays(30),
+                'balance_expiration_date' => now()->addDays($days),
                 'wallet_status' => 'active',
                 'expired_balance_amount' => null,
                 'expiration_reason' => null,
@@ -99,12 +100,14 @@ class Wallet extends Model
 
         DB::transaction(function () use ($expiredAmount) {
             // Record transaction in history
+            $days = (int) config('avaroa.wallet.expiration_days', 30);
+
             $this->transactions()->create([
                 'type' => 'balance_expiration',
                 'amount' => $expiredAmount,
                 'direction' => 'DEBIT',
                 'reference_type' => 'expiration',
-                'reference_id' => '30_days_inactivity',
+                'reference_id' => $days . '_days_inactivity',
             ]);
 
             // Update wallet with expired state
@@ -112,7 +115,7 @@ class Wallet extends Model
                 'balance' => 0,
                 'wallet_status' => 'expired',
                 'expired_balance_amount' => $expiredAmount,
-                'expiration_reason' => 'Balance expired due to 30 days of inactivity.',
+                'expiration_reason' => "Saldo expirado por {$days} días de inactividad.",
                 'balance_expiration_date' => now(),
             ]);
         });

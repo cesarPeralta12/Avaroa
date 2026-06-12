@@ -28,80 +28,77 @@ class WhatsAppService
     /**
      * CRITICAL FIX: 6 vehicle categories with their services.
      */
+    /**
+     * Catálogo oficial AVAROA: 6 vehículos con sus servicios permitidos.
+     * Espejo del array `vehicles` de `config/avaroa.php`.
+     */
     protected array $vehicleOptions = [
         'motorcycle' => [
-            'label' => '🛵 Moto',
-            'description' => 'Rápida y económica',
+            'label' => '🛵 Motocicleta',
+            'description' => 'Transporte de personas, paquetes y mandados',
             'backend_type' => 'moto',
             'services' => [
                 'mototaxi' => ['label' => '🛵 Mototaxi', 'requires_pod' => false, 'description' => 'Transporte de personas'],
-                'flash' => ['label' => '⚡ Moto Flash', 'requires_pod' => true, 'description' => 'Entregas rápidas'],
-                'delivery' => ['label' => '📦 Delivery', 'requires_pod' => true, 'description' => 'Paquetes y mandados'],
+                'compras'  => ['label' => '🛍️ Compras',  'requires_pod' => true,  'description' => 'Compras y mandados'],
             ],
-            'keywords' => ['1', '1️⃣', 'moto', 'motorcycle', 'motocicleta', 'moto taxi', 'moto veloz', 'moto restaurant', 'moto socorro']
+            'keywords' => ['1', '1️⃣', 'moto', 'motorcycle', 'motocicleta', 'moto taxi'],
         ],
         'car' => [
             'label' => '🚗 Auto',
-            'description' => 'Paquetes medianos',
-            'backend_type' => 'automovil',
+            'description' => 'Transporte de personas, paquetes y carga',
+            'backend_type' => 'auto',
             'services' => [
-                'taxi' => ['label' => '🚕 Taxi', 'requires_pod' => false, 'description' => 'Transporte de personas'],
-                'delivery' => ['label' => '📦 Delivery', 'requires_pod' => true, 'description' => 'Paquetes y mandados'],
-                'cargo' => ['label' => '📦 Carga', 'requires_pod' => true, 'description' => 'Carga mediana'],
+                'taxi'  => ['label' => '🚕 Taxi',  'requires_pod' => false, 'description' => 'Transporte de personas'],
+                'carga' => ['label' => '📦 Carga', 'requires_pod' => true,  'description' => 'Paquetes, carga y mandados'],
             ],
-            'keywords' => ['2', '2️⃣', 'auto', 'automovil', 'automóvil', 'carro', 'movil', 'móvil', 'sedan', 'sedán']
+            'keywords' => ['2', '2️⃣', 'auto', 'automovil', 'automóvil', 'carro', 'sedan', 'sedán'],
         ],
         'minivan' => [
             'label' => '🚐 Minivan',
-            'description' => 'Varios paquetes',
+            'description' => 'Transporte de personas, paquetes y carga',
             'backend_type' => 'minivan',
             'services' => [
-                'taxi' => ['label' => '🚕 Taxi', 'requires_pod' => false, 'description' => 'Transporte de personas'],
-                'delivery' => ['label' => '📦 Delivery', 'requires_pod' => true, 'description' => 'Paquetes y mandados'],
-                'cargo' => ['label' => '📦 Carga', 'requires_pod' => true, 'description' => 'Carga mediana'],
+                'taxi'  => ['label' => '🚕 Taxi',  'requires_pod' => false, 'description' => 'Transporte de personas'],
+                'carga' => ['label' => '📦 Carga', 'requires_pod' => true,  'description' => 'Paquetes, carga y mandados'],
             ],
-            'keywords' => ['3', '3️⃣', 'minivan', 'van', 'vagoneta', 'furgon', 'furgón', 'camioneta', 'suv']
+            'keywords' => ['3', '3️⃣', 'minivan', 'van', 'vagoneta', 'furgon', 'furgón', 'suv'],
         ],
         'truck' => [
             'label' => '🚚 Camión',
-            'description' => 'Mudanzas o cargas grandes',
-            'backend_type' => 'camioneta',
+            'description' => 'Solo carga grande y mudanzas (no pasajeros)',
+            'backend_type' => 'camion',
             'services' => [
-                'cargo' => ['label' => '📦 Carga', 'requires_pod' => true, 'description' => 'Carga grande y mudanzas'],
+                'carga' => ['label' => '📦 Carga', 'requires_pod' => true, 'description' => 'Carga grande y mudanzas'],
             ],
             'can_transport_people' => false,
-            'keywords' => ['4', '4️⃣', 'camion', 'camión', 'camioneta', 'truck', 'pickup', 'pick up', 'parrilla', 'carga', 'mudanza', 'flete']
+            'keywords' => ['4', '4️⃣', 'camion', 'camión', 'truck', 'mudanza', 'flete'],
         ],
         'torito' => [
             'label' => '🚜 Torito',
-            'description' => 'Transporte de personas y carga pequeña',
+            'description' => 'Transporte de personas y paquetes pequeños',
             'backend_type' => 'torito',
             'services' => [
-                'taxi' => ['label' => '🚕 Taxi', 'requires_pod' => false, 'description' => 'Transporte de personas'],
-                'delivery' => ['label' => '📦 Delivery', 'requires_pod' => true, 'description' => 'Paquetes pequeños'],
+                'taxi'          => ['label' => '🚕 Taxi',         'requires_pod' => false, 'description' => 'Transporte de personas'],
+                'carga_pequena' => ['label' => '📦 Carga pequeña','requires_pod' => true,  'description' => 'Paquetes pequeños'],
             ],
-            'keywords' => ['5', '5️⃣', 'torito', 'motocarro', 'triciclo']
+            'keywords' => ['5', '5️⃣', 'torito', 'motocarro', 'triciclo'],
         ],
         'bicycle' => [
             'label' => '🚲 Bicicleta',
-            'description' => 'Entregas pequeñas',
+            'description' => 'Únicamente entregas pequeñas (no pasajeros)',
             'backend_type' => 'bicicleta',
             'services' => [
-                'delivery' => ['label' => '📦 Delivery', 'requires_pod' => true, 'description' => 'Solo entregas pequeñas'],
+                'delivery' => ['label' => '📦 Delivery', 'requires_pod' => true, 'description' => 'Entregas y paquetes pequeños'],
             ],
             'can_transport_people' => false,
-            'keywords' => ['6', '6️⃣', 'bici', 'bicicleta', 'bicycle', 'bike']
-        ]
+            'keywords' => ['6', '6️⃣', 'bici', 'bicicleta', 'bicycle', 'bike'],
+        ],
     ];
 
     /**
-     * Bot working hours: 8:00 AM to 11:00 PM Bolivia time (UTC-4)
+     * Horario de atención del bot. Configurable vía config/avaroa.php.
      */
-    protected array $workingHours = [
-        'start' => '08:00',
-        'end' => '23:00',
-        'timezone' => 'America/La_Paz',
-    ];
+    protected array $workingHours;
 
     protected array $lastErrors = [];
 
@@ -115,6 +112,12 @@ class WhatsAppService
         $this->driverService = $driverService;
         $this->metaWhatsApp = $metaWhatsApp;
         $this->openAI = $openAI;
+
+        $this->workingHours = [
+            'start'    => sprintf('%02d:00', (int) config('avaroa.bot.start_hour', 8)),
+            'end'      => sprintf('%02d:00', (int) config('avaroa.bot.end_hour', 23)),
+            'timezone' => (string) config('avaroa.bot.timezone', 'America/La_Paz'),
+        ];
     }
 
     /**
@@ -134,15 +137,26 @@ class WhatsAppService
      */
     protected function getOutOfHoursMessage(string $language = 'es'): string
     {
+        $start = (int) config('avaroa.bot.start_hour', 8);
+        $end   = (int) config('avaroa.bot.end_hour', 23);
+        $startStr = sprintf('%d:00 a.m.', $start);
+        $endStr   = $end >= 13 ? sprintf('%d:00 p.m.', $end - 12) : sprintf('%d:00 p.m.', $end);
+        $humanUrl = (string) config('avaroa.bot.human_agent_url', 'https://wa.me/59178477130');
+
         if ($language === 'es') {
-            return "Gracias por contactar a *AVAROA*. 🚚\n\n" .
-                "Nuestro horario de atención es de *8:00 a.m. a 11:00 p.m.*, hora de Bolivia.\n\n" .
-                "Por favor, escríbenos nuevamente durante ese horario para solicitar tu servicio.";
+            return "Gracias por contactar a *AVAROA* 🚚\n\n" .
+                "Nuestro horario de atención es de *{$startStr} a {$endStr}* (hora de Bolivia).\n\n" .
+                "Por favor, escríbenos nuevamente durante ese horario para solicitar tu servicio.\n\n" .
+                "¿Necesitas ayuda inmediata?\n" .
+                "👉 {$humanUrl}\n\n" .
+                "¡Estaremos encantados de ayudarte!";
         }
 
-        return "Thank you for contacting *AVAROA*. 🚚\n\n" .
-            "Our working hours are from *8:00 a.m. to 11:00 p.m.*, Bolivia time.\n\n" .
-            "Please message us again during that schedule to request your service.";
+        return "Thank you for contacting *AVAROA* 🚚\n\n" .
+            "Our working hours are *{$startStr} to {$endStr}* (Bolivia time).\n\n" .
+            "Please message us again during that window to request your service.\n\n" .
+            "Need immediate help?\n" .
+            "👉 {$humanUrl}";
     }
 
     public function processMessage(array $payload): string
@@ -285,12 +299,12 @@ class WhatsAppService
         $responseMessage =
             "¡Hola! Bienvenido a *AVAROA* 🚚\n\n" .
             "¿Qué tipo de vehículo necesitás?\n\n" .
-            "1️⃣ *Moto* — Mototaxi, Moto Flash, Delivery\n" .
-            "2️⃣ *Auto* — Taxi, Delivery, Carga\n" .
-            "3️⃣ *Minivan* — Taxi, Delivery, Carga\n" .
-            "4️⃣ *Camión* — Carga y mudanzas (NO pasajeros)\n" .
-            "5️⃣ *Torito* — Taxi, carga pequeña\n" .
-            "6️⃣ *Bicicleta* — Delivery pequeño\n\n" .
+            "1️⃣ *Motocicleta* — Mototaxi y Compras\n" .
+            "2️⃣ *Auto* — Taxi y Carga\n" .
+            "3️⃣ *Minivan* — Taxi y Carga\n" .
+            "4️⃣ *Camión* — Solo carga (NO pasajeros)\n" .
+            "5️⃣ *Torito* — Taxi y carga pequeña\n" .
+            "6️⃣ *Bicicleta* — Solo delivery pequeño\n\n" .
             "Responde con el *número* 😊";
 
         $this->sendToUser($user, $responseMessage, $session->id, null, $language);
@@ -808,25 +822,45 @@ class WhatsAppService
         $driver = Driver::with('user')->find($trip->driver_id);
         $vehicle = Vehicle::find($trip->vehicle_id);
 
+        $msg = $this->buildDriverAssignedMessage($trip, $driver, $vehicle, $session);
+        $this->sendToUser($user, $msg, $session->id, $trip->id, $language);
+    }
+
+    /**
+     * Construye la ficha completa del conductor/mensajero al asignar el viaje.
+     * Incluye nombre, teléfono, servicio, vehículo (modelo + color + placa) y precio,
+     * adaptando el vocabulario al tipo de servicio (taxi vs delivery).
+     */
+    protected function buildDriverAssignedMessage(Trip $trip, ?Driver $driver, ?Vehicle $vehicle, $session = null): string
+    {
+        $voc = $trip->messageVocabulary();
+        $isPassenger = $trip->isPassengerService();
+
         $priceFormatted = $trip->price ? 'Bs ' . number_format($trip->price, 2) : 'Bs 0';
-        $driverName = $driver?->user?->name ?? 'Conductor';
+        $driverName  = $driver?->user?->name ?? $voc['role_cap'];
         $driverPhone = $driver?->user?->whatsapp_number ?? 'N/A';
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
-        $sessionData = json_decode($session->data ?? '{}', true);
-        $serviceType = $sessionData['service_type'] ?? 'delivery';
-        $serviceLabel = $this->vehicleOptions[$sessionData['vehicle_type'] ?? 'motorcycle']['services'][$serviceType]['label'] ?? 'Servicio';
+        $serviceLabel = 'Servicio';
+        if ($session) {
+            $sessionData = json_decode($session->data ?? '{}', true);
+            $serviceType = $sessionData['service_type'] ?? ($trip->service_type ?? 'delivery');
+            $vehicleKey  = $sessionData['vehicle_type'] ?? 'motorcycle';
+            $serviceLabel = $this->vehicleOptions[$vehicleKey]['services'][$serviceType]['label'] ?? $serviceLabel;
+        }
 
-        $msg =
-            "✅ *¡Conductor asignado!*\n\n" .
-            "👤 *Nombre:* {$driverName}\n" .
+        $closingLine = $isPassenger
+            ? '🚕 El conductor va camino a recogerte.'
+            : '🚚 El mensajero va camino al punto de recogida del paquete.';
+
+        return
+            "✅ *{$voc['assigned_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
             "📱 *Teléfono:* {$driverPhone}\n" .
-            "🚗 *Servicio:* {$serviceLabel}\n" .
+            "🛎️ *Servicio:* {$serviceLabel}\n\n" .
             "{$vehicleDisplay}\n\n" .
             "💰 *Precio:* {$priceFormatted}\n\n" .
-            "🚚 El conductor ya va hacia tu ubicación.";
-
-        $this->sendToUser($user, $msg, $session->id, $trip->id, $language);
+            $closingLine;
     }
 
     protected function handleDriverEnRoute($session, $user, string $message, string $language = 'es'): void
@@ -860,14 +894,15 @@ class WhatsAppService
 
         $driver = Driver::with('user')->find($trip?->driver_id);
         $vehicle = Vehicle::find($trip?->vehicle_id);
-        $driverName = $driver?->user?->name ?? 'Conductor';
+        $voc = $trip ? $trip->messageVocabulary() : (new Trip())->messageVocabulary();
+        $driverName = $driver?->user?->name ?? $voc['role_cap'];
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
         $responseMessage =
-            "🚚 *Tu conductor está en camino*\n\n" .
-            "👤 *Conductor:* {$driverName}\n" .
+            "{$voc['emoji']} *{$voc['en_route_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
             "{$vehicleDisplay}\n\n" .
-            "Se dirige a tu ubicación de recogida.";
+            "{$voc['en_route_detail']}";
 
         $this->sendToUser($user, $responseMessage, $session->id, $trip->id, $language);
     }
@@ -890,14 +925,15 @@ class WhatsAppService
 
         $driver = Driver::with('user')->find($trip?->driver_id);
         $vehicle = Vehicle::find($trip?->vehicle_id);
-        $driverName = $driver?->user?->name ?? 'Conductor';
+        $voc = $trip ? $trip->messageVocabulary() : (new Trip())->messageVocabulary();
+        $driverName = $driver?->user?->name ?? $voc['role_cap'];
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
         $responseMessage =
-            "📍 *¡Tu conductor llegó!*\n\n" .
-            "👤 *Conductor:* {$driverName}\n" .
+            "📍 *{$voc['arrived_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
             "{$vehicleDisplay}\n\n" .
-            "Ya está en el punto de recogida 👍";
+            "{$voc['arrived_detail']}";
 
         $this->sendToUser($user, $responseMessage, $session->id, $trip->id, $language);
     }
@@ -921,14 +957,15 @@ class WhatsAppService
 
         $driver = Driver::with('user')->find($trip?->driver_id);
         $vehicle = Vehicle::find($trip?->vehicle_id);
-        $driverName = $driver?->user?->name ?? 'Conductor';
+        $voc = $trip ? $trip->messageVocabulary() : (new Trip())->messageVocabulary();
+        $driverName = $driver?->user?->name ?? $voc['role_cap'];
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
         $responseMessage =
-            "📦 *Servicio en progreso*\n\n" .
-            "👤 *Conductor:* {$driverName}\n" .
+            "{$voc['emoji']} *{$voc['started_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
             "{$vehicleDisplay}\n\n" .
-            "Tu servicio está en camino al destino 📍\n\n" .
+            "{$voc['started_detail']}\n\n" .
             "Escribí *ESTADO* para actualizaciones.";
 
         $this->sendToUser($user, $responseMessage, $session->id, $trip->id, $language);
@@ -946,17 +983,14 @@ class WhatsAppService
         }
 
         if ($trip->status === 'completed') {
-            $requiresPod = $trip->requires_pod ?? true;
+            $voc = $trip->messageVocabulary();
+            $followUp = $trip->isPassengerService()
+                ? 'Escribí *HOLA* para solicitar otro viaje.'
+                : 'Escribí *HOLA* para hacer otra entrega.';
 
-            if ($requiresPod) {
-                $msg = "✅ *¡Entrega completada!*\n\n" .
-                    "Gracias por usar nuestro servicio 🚚\n\n" .
-                    "Escribí *HOLA* para hacer otra entrega.";
-            } else {
-                $msg = "✅ *¡Viaje completado!*\n\n" .
-                    "Gracias por viajar con nosotros 🚕\n\n" .
-                    "Escribí *HOLA* para solicitar otro viaje.";
-            }
+            $msg = "✅ *{$voc['completed_title']}*\n\n" .
+                "{$voc['completed_thanks']}\n\n" .
+                $followUp;
 
             $this->sendToUser($user, $msg, $session->id, $trip->id, $language);
 
@@ -970,13 +1004,15 @@ class WhatsAppService
 
         $driver = Driver::with('user')->find($trip->driver_id);
         $vehicle = Vehicle::find($trip->vehicle_id);
+        $voc = $trip->messageVocabulary();
         $driverName = $driver?->user?->name ?? 'No asignado';
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
         $message =
-            "📦 *Servicio en progreso*\n\n" .
-            "👤 *Conductor:* {$driverName}\n" .
+            "{$voc['emoji']} *{$voc['started_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
             "{$vehicleDisplay}\n\n" .
+            "{$voc['started_detail']}\n\n" .
             "Escribí *ESTADO* para actualizaciones.";
 
         $this->sendToUser($user, $message, $session->id, $trip->id, $language);
@@ -1204,25 +1240,32 @@ class WhatsAppService
             return "No encontré info del servicio.";
         }
 
+        $voc = $trip->messageVocabulary();
+        $role = $voc['role'];
+        $roleCap = $voc['role_cap'];
+        $subject = $voc['subject'];
+        $pickupVerb = $trip->isPassengerService() ? 'recogerte' : 'recoger tu paquete';
+        $destVerb   = $trip->isPassengerService() ? 'tu destino' : 'el destino de entrega';
+
         $statusMessages = [
-            'NEW' => '🆕 Servicio registrado, esperando confirmación.',
-            'pickup_set' => '📍 Recogida guardada.',
-            'destination_set' => '📦 Destino guardado, calculando precio...',
+            'NEW' => "🆕 {$voc['subject_cap']} registrado, esperando confirmación.",
+            'pickup_set' => '📍 Punto de recogida guardado.',
+            'destination_set' => '🎯 Destino guardado, calculando precio...',
             'priced' => '💰 Precio listo, esperando tu confirmación.',
-            'pending' => '🔍 Buscando conductor...',
-            'assigned' => '✅ Conductor asignado, en camino a la recogida.',
-            'en_route' => '🚚 Conductor en camino al destino.',
-            'arrived' => '📍 El conductor llegó a la ubicación.',
-            'in_progress' => '📦 Servicio en progreso.',
-            'completed' => '✅ Servicio completado.',
-            'cancelled' => '❌ Servicio cancelado.',
-            'no_drivers' => '❌ No hay conductores disponibles.'
+            'pending' => "🔍 Buscando {$role} disponible...",
+            'assigned' => "✅ {$roleCap} asignado, va a {$pickupVerb}.",
+            'en_route' => "{$voc['emoji']} {$roleCap} en camino a {$destVerb}.",
+            'arrived' => "📍 El {$role} llegó al punto de recogida.",
+            'in_progress' => "{$voc['emoji']} {$voc['subject_cap']} en progreso.",
+            'completed' => "✅ {$voc['subject_cap']} completado.",
+            'cancelled' => "❌ {$voc['subject_cap']} cancelado.",
+            'no_drivers' => "❌ No hay {$role}s disponibles.",
         ];
 
         $status = $statusMessages[$trip->status] ?? 'Estado desconocido';
 
         if ($trip->driver_id && $trip->driver) {
-            $driverName = $trip->driver->user->name ?? 'Conductor';
+            $driverName = $trip->driver->user->name ?? $roleCap;
             $status .= "\n👤 {$driverName}";
 
             if ($trip->driver->user && $trip->driver->user->whatsapp_number) {
@@ -1277,18 +1320,28 @@ class WhatsAppService
     protected function formatVehicleForDisplay(?Vehicle $vehicle): string
     {
         if (!$vehicle) {
-            return '🚗 Vehículo no especificado';
+            return '🚗 *Vehículo:* No especificado';
         }
 
-        $description = $this->buildVehicleDescription($vehicle);
-        $plate = $vehicle->plate_number ?? 'N/A';
-        $typeLabel = $vehicle->vehicle_type_label ?? $this->getVehicleLabel($vehicle->type) ?? $vehicle->type ?? 'Vehículo';
+        $typeLabel = $vehicle->vehicle_type_label
+            ?? $this->getVehicleLabel($vehicle->type)
+            ?? $vehicle->type
+            ?? 'Vehículo';
 
-        if ($description === $typeLabel || $description === 'Vehículo') {
-            return "🚗 {$typeLabel} - Placa: {$plate}";
+        $lines = ["🚗 *Vehículo:* {$typeLabel}"];
+
+        if (!empty($vehicle->model)) {
+            $lines[] = "🏷️ *Modelo:* " . trim($vehicle->model);
+        }
+        if (!empty($vehicle->color)) {
+            $lines[] = "🎨 *Color:* " . trim($vehicle->color);
+        }
+        $plate = $vehicle->plate_number ?? null;
+        if (!empty($plate)) {
+            $lines[] = "🔢 *Placa:* " . strtoupper(trim($plate));
         }
 
-        return "🚗 {$description} - Placa: {$plate}";
+        return implode("\n", $lines);
     }
 
     protected function getVehicleLabel(string $backendType): string

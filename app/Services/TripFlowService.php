@@ -9,9 +9,20 @@ use Illuminate\Support\Facades\Log;
 
 class TripFlowService
 {
-    protected const AVERAGE_SPEED_KMH = 25;
-    protected const FARE_PER_MINUTE = 1.15;
-    protected const MINIMUM_FARE = 7.00; // Minimum fare per trip: 7 Bs
+    protected function averageSpeedKmh(): float
+    {
+        return (float) config('avaroa.fare.average_speed_kmh', 25);
+    }
+
+    protected function farePerMinute(): float
+    {
+        return (float) config('avaroa.fare.per_minute', 1.15);
+    }
+
+    protected function minimumFare(): float
+    {
+        return (float) config('avaroa.fare.minimum', 7.00);
+    }
 
     public function calculateCost(Trip $trip): ?float
     {
@@ -42,14 +53,12 @@ class TripFlowService
                 throw new \Exception('Invalid distance');
             }
 
-            // Calculate time based on average speed
-            $minutes = ($distanceKm / self::AVERAGE_SPEED_KMH) * 60;
+            $perMinute   = $this->farePerMinute();
+            $minimumFare = $this->minimumFare();
 
-            // Calculate fare based on time
-            $calculatedFare = round($minutes * self::FARE_PER_MINUTE, 2);
-
-            // Apply minimum fare: if calculated fare is less than 7 Bs, charge 7 Bs
-            $finalFare = max($calculatedFare, self::MINIMUM_FARE);
+            $minutes = ($distanceKm / $this->averageSpeedKmh()) * 60;
+            $calculatedFare = round($minutes * $perMinute, 2);
+            $finalFare = max($calculatedFare, $minimumFare);
 
             $trip->update([
                 'price' => $finalFare,
@@ -62,9 +71,9 @@ class TripFlowService
                 'trip_id' => $trip->id,
                 'distance' => $trip->distance,
                 'duration' => $minutes,
-                'per_minute_rate' => self::FARE_PER_MINUTE,
+                'per_minute_rate' => $perMinute,
                 'total_fare' => $finalFare,
-                'base_fare' => self::MINIMUM_FARE,
+                'base_fare' => $minimumFare,
                 'calculation_method' => 'gps_coordinates',
             ]);
 
@@ -73,7 +82,7 @@ class TripFlowService
                 'distance' => $distanceKm,
                 'calculated_fare' => $calculatedFare,
                 'final_fare' => $finalFare,
-                'minimum_fare_applied' => $calculatedFare < self::MINIMUM_FARE
+                'minimum_fare_applied' => $calculatedFare < $minimumFare,
             ]);
 
             return $finalFare;

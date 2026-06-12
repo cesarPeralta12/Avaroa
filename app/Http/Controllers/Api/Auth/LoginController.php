@@ -15,15 +15,20 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string',
+            'email'     => 'required|email',
+            'password'  => 'required|string',
             'fcm_token' => 'nullable|string',
+        ], [
+            'email.required'    => 'El correo electrÃ³nico es obligatorio.',
+            'email.email'       => 'La direcciÃ³n de correo ingresada no es vÃ¡lida.',
+            'password.required' => 'La contraseÃ±a es obligatoria.',
         ]);
 
         if ($validator->fails()) {
             return $this->safeResponse([
                 'success' => false,
-                'errors' => $validator->errors(),
+                'message' => $validator->errors()->first() ?: 'Por favor, revisa los campos del formulario.',
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -31,10 +36,17 @@ class LoginController extends Controller
                     ->where('account_type', 'driver')
                     ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user) {
             return $this->safeResponse([
                 'success' => false,
-                'message' => 'Correo electronico o contrasena incorrectos.',
+                'message' => 'No pudimos iniciar sesiÃ³n. Por favor, revisa tu correo y contraseÃ±a.',
+            ], 401);
+        }
+
+        if (!Hash::check($request->password, $user->password)) {
+            return $this->safeResponse([
+                'success' => false,
+                'message' => 'La contraseÃ±a ingresada es incorrecta.',
             ], 401);
         }
 
@@ -178,7 +190,7 @@ class LoginController extends Controller
 
         // 3. Normalizar comillas y acentos comunes corruptos
         $replacements = [
-            "\xC3\xA2\xE2\x82\xAC\xC2\xA1" => '',   // basura com¨²n de Latin1¡úUTF-8
+            "\xC3\xA2\xE2\x82\xAC\xC2\xA1" => '',   // basura comï¿½ï¿½n de Latin1ï¿½ï¿½UTF-8
             "\xC3\x82" => '',
             "\xC2\xA0" => ' ',  // non-breaking space
         ];

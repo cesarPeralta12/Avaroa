@@ -28,7 +28,9 @@ class ExpireInactiveWallets extends Command
      */
     public function handle(): int
     {
-        $threshold = now()->subDays(30);
+        $days = (int) config('avaroa.wallet.expiration_days', 30);
+        $threshold = now()->subDays($days);
+        $this->info("Expiring wallets with no recharge in the last {$days} days.");
         $count = 0;
         $emailCount = 0;
 

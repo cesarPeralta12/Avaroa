@@ -203,17 +203,16 @@
                                     </td>
                                     <td>
     @php
-        $vehicleLabels = [
-            'moto_veloz'     => 'Moto',
-            'movil'          => 'Auto',
-            'movil_vagoneta' => 'Minivan',
-            'movil_parrilla' => 'Camión',
-            'moto'           => 'Moto',
-            'automovil'      => 'Automóvil',
-            'vagoneta'       => 'Vagoneta',
-            'minivan'        => 'Minivan',
-            'camioneta'      => 'Camioneta',
-            'car'            => 'Auto',
+        // Catálogo oficial AVAROA + aliases legacy (lectura de registros antiguos).
+        $vehicleLabels = \App\Models\Vehicle::canonicalLabels() + [
+            'moto_veloz'     => '🛵 Motocicleta',
+            'movil'          => '🚗 Auto',
+            'movil_vagoneta' => '🚐 Minivan',
+            'movil_parrilla' => '🚚 Camión',
+            'automovil'      => '🚗 Auto',
+            'vagoneta'       => '🚐 Minivan',
+            'camioneta'      => '🚚 Camión',
+            'car'            => '🚗 Auto',
         ];
     @endphp
 

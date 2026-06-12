@@ -34,20 +34,20 @@ class RegistrationController extends Controller
             'full_name.required' => 'El nombre completo es requerido',
             'full_name.max' => 'El nombre no debe exceder 255 caracteres',
             'email.required' => 'El correo electrónico es requerido',
-            'email.email' => 'El correo electrónico no es válido',
-            'email.unique' => 'Este correo ya está registrado. Use otro correo.',
+            'email.email' => 'La dirección de correo ingresada no es válida.',
+            'email.unique' => 'Este correo ya está registrado. Por favor, intenta con otro correo.',
             'phone.required' => 'El teléfono es requerido',
             'phone.min' => 'El teléfono debe tener al menos 8 dígitos',
             'phone.max' => 'El teléfono no debe exceder 20 dígitos',
             'password.required' => 'La contraseña es requerida',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
+                'message' => $validator->errors()->first() ?: 'Por favor, revisa los campos del formulario.',
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -99,17 +99,14 @@ class RegistrationController extends Controller
 
     public function registerVehicleInfo(Request $request)
     {
-        // CRITICAL FIX: Updated vehicle types to include all 6 categories
+        // Catálogo oficial AVAROA: moto, auto, minivan, camion, torito, bicicleta.
+        // Aceptamos también las claves legacy y normalizamos antes de guardar.
+        $allowedTypes = ['moto', 'auto', 'minivan', 'camion', 'torito', 'bicicleta'];
+        $legacyAliases = ['motocicleta', 'automovil', 'camioneta', 'vagoneta', 'motorcycle', 'car', 'truck', 'bicycle'];
+
         $validator = Validator::make($request->all(), [
             'driver_id' => 'required|exists:drivers,id',
-            'vehicle_type' => ['required', Rule::in([
-                'moto',
-                'automovil',
-                'minivan',
-                'camioneta',
-                'torito',
-                'bicicleta'
-            ])],
+            'vehicle_type' => ['required', Rule::in(array_merge($allowedTypes, $legacyAliases))],
             'license_plate' => 'required|string|max:20|unique:vehicles,plate_number',
             'vehicle_model' => 'required|string|max:255',
             'vehicle_year' => 'required|integer|min:1990|max:' . (date('Y') + 1),
@@ -118,14 +115,14 @@ class RegistrationController extends Controller
             'driver_id.required' => 'ID de conductor requerido',
             'driver_id.exists' => 'Conductor no encontrado',
             'vehicle_type.required' => 'El tipo de vehículo es requerido',
-            'vehicle_type.in' => 'Tipo de vehículo no válido. Opciones: moto, automovil, minivan, camioneta, torito, bicicleta',
+            'vehicle_type.in' => 'Tipo de vehículo no válido. Opciones: moto, auto, minivan, camion, torito, bicicleta',
             'license_plate.required' => 'La placa es requerida',
-            'license_plate.unique' => 'Esta placa ya está registrada. Use otra placa.',
+            'license_plate.unique' => 'Esta placa ya está registrada. Por favor, intenta con otra placa.',
             'license_plate.max' => 'La placa no debe exceder 20 caracteres',
             'vehicle_model.required' => 'El modelo es requerido',
             'vehicle_model.max' => 'El modelo no debe exceder 255 caracteres',
             'vehicle_year.required' => 'El año es requerido',
-            'vehicle_year.integer' => 'El año debe ser un número',
+            'vehicle_year.integer' => 'El año debe ser un número entero',
             'vehicle_year.min' => 'El año debe ser 1990 o posterior',
             'vehicle_year.max' => 'El año no puede ser mayor a ' . (date('Y') + 1),
             'vehicle_color.required' => 'El color del vehículo es requerido',
@@ -135,8 +132,8 @@ class RegistrationController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
+                'message' => $validator->errors()->first() ?: 'Por favor, revisa los campos del formulario.',
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -145,15 +142,17 @@ class RegistrationController extends Controller
 
             $driver = Driver::findOrFail($request->driver_id);
 
+            $canonicalType = Vehicle::canonicalType($request->vehicle_type);
+
             $vehicle = Vehicle::create([
                 'driver_id' => $driver->id,
                 'plate_number' => strtoupper($request->license_plate),
-                'type' => $request->vehicle_type,
+                'type' => $canonicalType,
                 'model' => $request->vehicle_model,
                 'year' => $request->vehicle_year,
                 'color' => $request->vehicle_color,
-                'capacity_weight' => $this->getDefaultCapacityWeight($request->vehicle_type),
-                'capacity_volume' => $this->getDefaultCapacityVolume($request->vehicle_type),
+                'capacity_weight' => $this->getDefaultCapacityWeight($canonicalType),
+                'capacity_volume' => $this->getDefaultCapacityVolume($canonicalType),
             ]);
 
             DB::commit();
@@ -204,8 +203,8 @@ class RegistrationController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
+                'message' => $validator->errors()->first() ?: 'Por favor, revisa los campos del formulario.',
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -348,35 +347,29 @@ class RegistrationController extends Controller
         ]);
     }
 
-    // CRITICAL FIX: Updated capacity weights for all 6 vehicle types
     protected function getDefaultCapacityWeight(string $vehicleType): float
     {
-        return match ($vehicleType) {
-            'moto' => 50.00,
-            'automovil' => 300.00,
-            'minivan' => 600.00,
-            'camioneta' => 1500.00,
-            'torito' => 80.00,
+        return match (Vehicle::canonicalType($vehicleType)) {
+            'moto'      => 50.00,
+            'auto'      => 300.00,
+            'minivan'   => 600.00,
+            'camion'    => 3500.00,
+            'torito'    => 80.00,
             'bicicleta' => 20.00,
-            'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi' => 50.00,
-            'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla' => 300.00,
-            default => 300.00,
+            default     => 300.00,
         };
     }
 
-    // CRITICAL FIX: Updated capacity volumes for all 6 vehicle types
     protected function getDefaultCapacityVolume(string $vehicleType): float
     {
-        return match ($vehicleType) {
-            'moto' => 0.20,
-            'automovil' => 2.00,
-            'minivan' => 4.00,
-            'camioneta' => 10.00,
-            'torito' => 0.50,
+        return match (Vehicle::canonicalType($vehicleType)) {
+            'moto'      => 0.20,
+            'auto'      => 2.00,
+            'minivan'   => 4.00,
+            'camion'    => 15.00,
+            'torito'    => 0.50,
             'bicicleta' => 0.10,
-            'moto_restaurant', 'moto_veloz', 'moto_socorro', 'moto_taxi' => 0.20,
-            'movil', 'movil_vagoneta', 'movil_ipsum', 'movil_parrilla' => 2.00,
-            default => 2.00,
+            default     => 2.00,
         };
     }
 
