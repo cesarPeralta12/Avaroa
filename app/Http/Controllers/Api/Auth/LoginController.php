@@ -59,6 +59,15 @@ class LoginController extends Controller
             ], 404);
         }
 
+        // Bloqueo 0: Cuenta deshabilitada por admin
+        if (!$user->is_active) {
+            return $this->safeResponse([
+                'success' => false,
+                'code'    => 'account_disabled',
+                'message' => 'Tu cuenta ha sido deshabilitada. Contacta con soporte para más información.',
+            ], 403);
+        }
+
         // Bloqueo 1: No verificado por admin
         if ($driver->approval_status !== 'approved' || !$driver->is_verified) {
             return $this->safeResponse([

@@ -11,29 +11,41 @@ class EnsureDriverIsActive
     {
         $user = $request->user();
 
-        if (!$user || !$user->isDriver()) {
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+
+        // Hard block: admin disabled the account
+        if (!$user->is_active) {
             return response()->json([
-                'success' => false,
-                'message' => 'Acceso no autorizado',
+                'success'          => false,
+                'account_disabled' => true,
+                'message'          => 'Tu cuenta ha sido deshabilitada. Contacta con soporte.',
             ], 403);
         }
 
         $driver = $user->driver;
 
-        // Allow pending status for registration continuation
-        if ($driver && in_array($driver->status, ['pending', 'under_review'])) {
-            // Check if token has registration ability
-            if ($request->user()->currentAccessToken()->can('driver:register')) {
-                return $next($request);
-            }
+        // Allow broadcasting auth without driver check
+        if ($request->is('*/broadcasting/auth')) {
+            return $next($request);
         }
 
-        // For active drivers
-        if (!$driver || !in_array($driver->status, ['available', 'busy', 'offline'])) {
+        // Allow logout/refresh without driver active check
+        if ($request->is('*/auth/logout') || $request->is('*/auth/refresh')) {
+            return $next($request);
+        }
+
+        if (!$driver) {
+            return response()->json(['success' => false, 'message' => 'Perfil de conductor no encontrado'], 404);
+        }
+
+        // Driver explicitly disabled or suspended
+        if (in_array($driver->status, ['disabled', 'suspended', 'blocked'])) {
             return response()->json([
-                'success' => false,
-                'message' => 'Cuenta no activa o en revisión',
-                'status' => $driver?->status,
+                'success'          => false,
+                'account_disabled' => true,
+                'message'          => 'Tu cuenta ha sido deshabilitada. Contacta con soporte.',
             ], 403);
         }
 

@@ -56,7 +56,7 @@ Route::prefix('auth')->group(function () {
 | PROTECTED ROUTES (SANCTUM)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'driver.active'])->group(function () {
 
     // Auth
     Route::post('/auth/logout', [LoginController::class, 'logout']);
