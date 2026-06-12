@@ -375,8 +375,7 @@ $(function(){
                     _token: "{{ csrf_token() }}"
                 }).done(function(r){
                     if(r.success){
-                        Swal.fire('Deshabilitados', 'Los conductores han sido deshabilitados.', 'success')
-                            .then(() => location.reload());
+                        location.reload();
                     }else{
                         Swal.fire('Error', r.message || 'Error al deshabilitar', 'error');
                     }
@@ -421,8 +420,7 @@ $(function(){
                     },
                     success: function(r){
                         if(r.success){
-                            Swal.fire('Deshabilitado', `${name} ha sido deshabilitado.`, 'success')
-                                .then(() => location.reload());
+                            location.reload();
                         }
                     },
                     error: function(){
@@ -451,8 +449,7 @@ $(function(){
                 $.post(url, {_token: "{{ csrf_token() }}"})
                     .done(function(r){
                         if(r.success){
-                            Swal.fire('Reactivado', `${name} puede volver a usar la app.`, 'success')
-                                .then(() => location.reload());
+                            location.reload();
                         }
                     })
                     .fail(function(){

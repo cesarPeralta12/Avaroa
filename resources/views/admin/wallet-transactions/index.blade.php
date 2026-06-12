@@ -3,13 +3,14 @@
 
 @section('css')
 <style>
+    /* ── Stats Cards ─────────────────────────────────── */
     .stats-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        background: #fff;
         border-radius: 15px;
         padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         height: 100%;
-        border: none;
+        border: 1px solid rgba(0,0,0,0.06);
     }
     .stats-icon {
         width: 50px;
@@ -18,42 +19,73 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.4rem;
+        flex-shrink: 0;
     }
+    .stats-card .text-muted { color: #6b7280 !important; font-size: 0.85rem; }
+    .stats-card h4 { font-size: 1.5rem; }
+
+    /* ── Amount colours ───────────────────────────────── */
     .transaction-credit { color: #10b981; font-weight: 600; }
     .transaction-debit  { color: #ef4444; font-weight: 600; }
 
+    /* ── Filter card ─────────────────────────────────── */
     .filter-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #032328 100%);
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
         border-radius: 15px;
-        padding: 20px;
+        padding: 24px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-        border: none;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+        border: 1px solid rgba(255,255,255,0.08);
     }
-
-    .type-badge {
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
+    .filter-card .form-label {
+        color: rgba(255,255,255,0.75);
+        font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+    }
+    .filter-card .form-control,
+    .filter-card .form-select {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #fff;
+        border-radius: 10px;
+    }
+    .filter-card .form-control::placeholder { color: rgba(255,255,255,0.4); }
+    .filter-card .form-control:focus,
+    .filter-card .form-select:focus {
+        background: rgba(255,255,255,0.13);
+        border-color: rgba(255,255,255,0.35);
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+    }
+    .filter-card .form-select option { background: #1e293b; color: #fff; }
+
+    /* ── Type badges ─────────────────────────────────── */
+    .type-badge {
+        padding: 4px 11px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
     .type-topup      { background: #dbeafe; color: #1e40af; }
     .type-commission { background: #fee2e2; color: #991b1b; }
     .type-adjustment { background: #fef3c7; color: #92400e; }
     .type-expiration { background: #fecaca; color: #7f1d1d; }
 
-    .driver-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .driver-avatar-sm, .driver-avatar-placeholder-sm {
-        width: 35px;
-        height: 35px;
+    /* ── Driver cell ─────────────────────────────────── */
+    .driver-info { display: flex; align-items: center; gap: 10px; }
+    .driver-avatar-sm,
+    .driver-avatar-placeholder-sm {
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         object-fit: cover;
+        flex-shrink: 0;
     }
     .driver-avatar-placeholder-sm {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -61,50 +93,60 @@
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: bold;
     }
 
-    .table th {
-        background: #f8fafc;
+    /* ── Table ───────────────────────────────────────── */
+    .table thead th {
+        background: #f1f5f9;
         font-weight: 600;
-        color: #374151;
+        font-size: 0.8rem;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 12px 16px;
     }
+    .table tbody td { vertical-align: middle; padding: 12px 16px; }
+    .table-hover tbody tr:hover { background: rgba(99,102,241,0.04); }
 
-    .pagination {
-        margin: 25px 0;
-    }
+    /* ── Pagination ──────────────────────────────────── */
+    .pagination { margin: 20px 0 4px; }
     .pagination .page-link {
         border-radius: 8px;
-        margin: 0 4px;
-        padding: 10px 16px;
+        margin: 0 3px;
+        padding: 8px 14px;
         color: #4b5563;
         border: 1px solid #d1d5db;
         transition: all 0.2s;
     }
     .pagination .page-item.active .page-link {
-        background-color: #6366f1;
+        background: #6366f1;
         border-color: #6366f1;
         color: white;
         font-weight: 600;
     }
-    .pagination .page-link:hover {
-        background-color: #f3f4f6;
-        color: #6366f1;
-    }
+    .pagination .page-link:hover { background: #f3f4f6; color: #6366f1; }
 
+    /* ── Export button ───────────────────────────────── */
     .export-btn {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        padding: 10px 20px;
+        padding: 10px 22px;
         border-radius: 10px;
         font-weight: 600;
         transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
     .export-btn:hover {
+        color: white;
         transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 20px rgba(102,126,234,0.45);
     }
 </style>
 @endsection
@@ -225,20 +267,19 @@
                         <label class="form-label">Desde Fecha</label>
                         <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Hasta Fecha</label>
                         <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
                     </div>
-
-                    <div class="col-md-3 d-flex align-items-end gap-2">
-                        <button type="submit" class="btn btn-primary d-flex align-items-center justify-content-center flex-fill">
-                            <i class="fas fa-search me-2"></i>
-                            Aplicar Filtros
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-search me-2"></i> Aplicar Filtros
                         </button>
-                        <a href="{{ route('wallet-transactions.index') }}" 
-                           class="btn btn-secondary d-flex align-items-center justify-content-center flex-fill">
-                            <i class="fas fa-redo me-2"></i>
-                            Restablecer
+                        <a href="{{ route('wallet-transactions.index') }}"
+                           class="btn btn-warning px-4">
+                            <i class="fas fa-redo me-2"></i> Restablecer
                         </a>
                     </div>
                 </div>
@@ -394,22 +435,22 @@
                     </h3>
                 </div>
                 <table class="table table-bordered">
-                    <tr><th style="color:white;">ID de Transacción</th><td style="color:white;">#{{ $txn->id }}</td></tr>
-                    <tr><th style="color:white;">Conductor</th><td style="color:white;">{{ $txn->wallet?->driver?->user?->name ?? 'N/A' }}</td></tr>
-                    <tr><th style="color:white;">ID del Conductor</th><td style="color:white;">{{ $txn->wallet?->driver_id ?? 'N/A' }}</td></tr>
-                    <tr><th style="color:white;">ID de Billetera</th><td style="color:white;">{{ $txn->wallet_id }}</td></tr>
-                    <tr><th style="color:white;">Tipo</th><td style="color:white;">{{ $detailTypeLabels[$txn->type] ?? ucfirst(str_replace('_', ' ', $txn->type)) }}</td></tr>
+                    <tr><th>ID de Transacción</th><td>#{{ $txn->id }}</td></tr>
+                    <tr><th>Conductor</th><td>{{ $txn->wallet?->driver?->user?->name ?? 'N/A' }}</td></tr>
+                    <tr><th>ID del Conductor</th><td>{{ $txn->wallet?->driver_id ?? 'N/A' }}</td></tr>
+                    <tr><th>ID de Billetera</th><td>{{ $txn->wallet_id }}</td></tr>
+                    <tr><th>Tipo</th><td>{{ $detailTypeLabels[$txn->type] ?? ucfirst(str_replace('_', ' ', $txn->type)) }}</td></tr>
                     <tr>
-                        <th style="color:white;">Monto</th>
-                        <td style="color:white;" class="{{ $txn->direction === 'CREDIT' ? 'text-success' : 'text-danger' }} fw-bold">
+                        <th>Monto</th>
+                        <td class="{{ $txn->direction === 'CREDIT' ? 'text-success' : 'text-danger' }} fw-bold">
                             {{ number_format($txn->amount, 2) }} Bs
                         </td>
                     </tr>
-                    <tr><th style="color:white;">Dirección</th><td style="color:white;">{{ $txn->direction === 'CREDIT' ? 'Crédito' : 'Débito' }}</td></tr>
-                    @if($txn->reference_type)<tr><th style="color:white;">Tipo de Referencia</th><td style="color:white;">{{ ucfirst($txn->reference_type) }}</td></tr>@endif
-                    @if($txn->reference_id)<tr><th style="color:white;">ID de Referencia</th><td style="color:white;">{{ $txn->reference_id }}</td></tr>@endif
-                    <tr><th style="color:white;">Creado Por</th><td style="color:white;">{{ $txn->admin?->name ?? 'Sistema' }}</td></tr>
-                    <tr><th style="color:white;">Fecha de Creación</th><td style="color:white;">{{ $txn->created_at->format('d M Y, H:i:s') }}</td></tr>
+                    <tr><th>Dirección</th><td>{{ $txn->direction === 'CREDIT' ? 'Crédito' : 'Débito' }}</td></tr>
+                    @if($txn->reference_type)<tr><th>Tipo de Referencia</th><td>{{ ucfirst($txn->reference_type) }}</td></tr>@endif
+                    @if($txn->reference_id)<tr><th>ID de Referencia</th><td>{{ $txn->reference_id }}</td></tr>@endif
+                    <tr><th>Creado Por</th><td>{{ $txn->admin?->name ?? 'Sistema' }}</td></tr>
+                    <tr><th>Fecha de Creación</th><td>{{ $txn->created_at->format('d M Y, H:i:s') }}</td></tr>
                 </table>
             </div>
             <div class="modal-footer">
