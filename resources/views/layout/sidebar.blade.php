@@ -1,10 +1,9 @@
 @php
     $isSuperAdmin  = $user_session->is_super_admin;
     $currentRole   = $isSuperAdmin ? 'admin' : ($user_session->role ?? 'customer');
-    $isOperator    = $currentRole === 'operator';
     $isAsistente   = $currentRole === 'asistente';
 @endphp
-@if ($isSuperAdmin || $isOperator || $isAsistente)
+@if ($isSuperAdmin || $isAsistente)
     <div class="sidebar-wrapper">
         <div>
             <div class="logo-wrapper"><a href="{{ route('dashboard') }}">
@@ -426,12 +425,12 @@
 <!--    </ul>-->
 <!--</li>-->
 
-                        {{-- Gestión de Usuarios (admin only) --}}
+                        {{-- Asistentes (admin only) --}}
                         @if($isSuperAdmin)
-                        <li class="sidebar-list {{ Request::routeIs('admin.users.*') ? 'active' : '' }}">
-                            <a class="sidebar-link sidebar-title link-nav" href="{{ route('admin.users.index') }}">
-                                <i class="fas fa-user-cog text-light"></i>&nbsp;&nbsp;&nbsp;
-                                <span>Gestión de Usuarios</span>
+                        <li class="sidebar-list {{ Request::routeIs('admin.assistants.*') ? 'active' : '' }}">
+                            <a class="sidebar-link sidebar-title link-nav" href="{{ route('admin.assistants.index') }}">
+                                <i class="fas fa-user-tie text-light"></i>&nbsp;&nbsp;&nbsp;
+                                <span>Asistentes</span>
                             </a>
                         </li>
                         @endif

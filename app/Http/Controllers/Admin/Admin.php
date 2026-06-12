@@ -117,7 +117,7 @@ class Admin extends Controller
 
         $role = $user->is_super_admin ? 'admin' : ($user->role ?? 'customer');
 
-        if (!in_array($role, ['admin', 'operator'])) {
+        if (!in_array($role, ['admin', 'asistente'])) {
             return back()->with('fail', 'No tienes permisos para acceder al panel de administración.');
         }
 
@@ -132,8 +132,8 @@ class Admin extends Controller
             'last_seen' => now()
         ]);
 
-        // Operators land on topup-requests since they can't access dashboard
-        if ($role === 'operator') {
+        // Asistentes land on topup-requests since they can't access dashboard
+        if ($role === 'asistente') {
             return redirect('admin/topup-requests');
         }
 

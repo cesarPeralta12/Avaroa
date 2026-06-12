@@ -58,7 +58,7 @@ use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\TripController;
 use App\Http\Controllers\Admin\VehicleController;
 use App\Http\Controllers\Admin\ServiceRateController;
-use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Admin\AssistantsController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\SetLocale;
 use App\Models\Language;
@@ -276,7 +276,7 @@ Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('
 Route::get('/ResetPasswordLoad', [UserController::class, 'ResetPasswordLoad'])->name('ResetPasswordLoad');
 Route::post('/ResetPassword', [UserController::class, 'ResetPassword'])->name('ResetPassword');
 
-Route::get('admin/unlock', [Admin::class, 'unlock'])->name('unlock');
+Route::get('admin/unlock', fn() => redirect('admin/login'))->name('unlock');
 Route::post('/update-mode', [Admin::class, 'updateMode']);
 Route::get('/get-user-mode', [Admin::class, 'getUserMode'])->name('getUserMode');
 
@@ -342,12 +342,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
         Route::post('/service-rates/commission', [ServiceRateController::class, 'updateCommission'])->name('admin.service-rates.commission');
         Route::put('/service-rates/{serviceRate}', [ServiceRateController::class, 'update'])->name('admin.service-rates.update');
 
-        // Admin Users Management — admin only
-        Route::get('/users-management', [AdminUsersController::class, 'index'])->name('admin.users.index');
-        Route::get('/users-management/{user}/edit', [AdminUsersController::class, 'edit'])->name('admin.users.edit');
-        Route::put('/users-management/{user}', [AdminUsersController::class, 'update'])->name('admin.users.update');
-        Route::delete('/users-management/{user}', [AdminUsersController::class, 'destroy'])->name('admin.users.destroy');
-        Route::post('/users-management/{user}/role', [AdminUsersController::class, 'changeRole'])->name('admin.users.change-role');
+        // Assistants Management — admin only
+        Route::get('/assistants', [AssistantsController::class, 'index'])->name('admin.assistants.index');
+        Route::post('/assistants', [AssistantsController::class, 'store'])->name('admin.assistants.store');
+        Route::delete('/assistants/{user}', [AssistantsController::class, 'destroy'])->name('admin.assistants.destroy');
 
         // Audit Logs (read-only mostly)
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

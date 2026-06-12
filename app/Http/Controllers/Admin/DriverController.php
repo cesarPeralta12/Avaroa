@@ -202,7 +202,22 @@ class DriverController extends Controller
             'acceptance_rate'  => 'nullable|numeric|between:0,100',
         ]);
 
+        $wasOnline = (bool) $driver->is_online;
         $driver->update($validated);
+
+        $goingOffline = (isset($validated['is_online']) && !$validated['is_online'])
+            || (isset($validated['status']) && $validated['status'] === 'offline');
+
+        if ($wasOnline && $goingOffline) {
+            $driverId = $driver->id;
+            app()->terminating(function () use ($driverId) {
+                try {
+                    broadcast(new \App\Events\DriverStatusChanged($driverId, 'unavailable'));
+                } catch (\Exception $e) {
+                    \Log::error('DriverStatusChanged broadcast failed: ' . $e->getMessage());
+                }
+            });
+        }
 
         return response()->json([
             'success' => true,

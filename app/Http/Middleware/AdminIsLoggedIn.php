@@ -29,24 +29,9 @@ class AdminIsLoggedIn
 
         $role = $user->is_super_admin ? 'admin' : ($user->role ?? 'customer');
 
-        if (!in_array($role, ['admin', 'operator', 'asistente'])) {
+        if (!in_array($role, ['admin', 'asistente'])) {
             Session::forget('LoggedIn');
             return redirect('admin/login')->with('fail', 'No tienes permisos para acceder al panel de administración.');
-        }
-
-        // Operators restricted to topup-requests and trips only
-        if ($role === 'operator') {
-            $path = $request->path();
-            $permitted = \Illuminate\Support\Str::is([
-                'admin/topup-requests*',
-                'admin/trips*',
-                'admin/login*',
-                'admin/logout*',
-            ], $path);
-
-            if (!$permitted) {
-                abort(403, 'Los operadores solo pueden acceder a Solicitudes de Recarga y Viajes.');
-            }
         }
 
         // Asistentes: conductores, viajes y gestión de billetera

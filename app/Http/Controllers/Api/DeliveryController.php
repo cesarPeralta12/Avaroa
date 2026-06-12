@@ -84,7 +84,7 @@ class DeliveryController extends Controller
                 }
 
                 $wallet = $driver->wallet ?? null;
-                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * config('avaroa.fare.commission_rate', 0.13));
+                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * $this->commissionRateForTrip($trip));
 
                 if (!$wallet || $wallet->balance < $estimatedCommission) {
                     return [
@@ -510,140 +510,122 @@ class DeliveryController extends Controller
             ], 422);
         }
 
+        // Read commission rate BEFORE the transaction (pure read, no lock needed)
+        $tripPrice       = (float) ($trip->price ?? 0);
+        $commissionRate  = $this->commissionRateForTrip($trip);
+        $commissionAmount = (float) number_format($tripPrice * $commissionRate, 2, '.', '');
+
+        $previousStatus     = $trip->status;
+        $finalWalletBalance = 0;
+
+        // 1. Handle file uploads BEFORE the transaction (slow I/O, no DB lock held)
+        $photoUrls = [];
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $path = $this->fileUploadService->upload(
+                    $photo,
+                    'deliveries/' . $trip->id . '/photos'
+                );
+                $photoUrls[] = $this->fileUploadService->getUrl($path);
+            }
+        }
+
+        $signatureUrl = null;
+        if ($request->hasFile('signature')) {
+            $sigPath = $this->fileUploadService->upload(
+                $request->file('signature'),
+                'deliveries/' . $trip->id . '/signatures'
+            );
+            $signatureUrl = $this->fileUploadService->getUrl($sigPath);
+        }
+
         DB::beginTransaction();
 
         try {
-            // 1. Handle POD uploads
-            $photoUrls = [];
-
-            if ($request->hasFile('photos')) {
-                foreach ($request->file('photos') as $photo) {
-                    $path = $this->fileUploadService->upload(
-                        $photo,
-                        'deliveries/' . $trip->id . '/photos'
-                    );
-                    $photoUrls[] = $this->fileUploadService->getUrl($path);
-                }
-            }
-
-            $signatureUrl = null;
-
-            if ($request->hasFile('signature')) {
-                $sigPath = $this->fileUploadService->upload(
-                    $request->file('signature'),
-                    'deliveries/' . $trip->id . '/signatures'
-                );
-                $signatureUrl = $this->fileUploadService->getUrl($sigPath);
-            }
-
             $pod = ProofOfDelivery::create([
-                'trip_id' => $trip->id,
-                'photo_url' => $photoUrls[0] ?? null,
-                'photo_urls' => $photoUrls,
-                'signature' => $signatureUrl,
-                'receiver_name' => $request->receiver_name,
-                'timestamp' => now(),
-                'geolocation_lat' => $request->input('location.lat'),
+                'trip_id'          => $trip->id,
+                'photo_url'        => $photoUrls[0] ?? null,
+                'photo_urls'       => $photoUrls,
+                'signature'        => $signatureUrl,
+                'receiver_name'    => $request->receiver_name,
+                'timestamp'        => now(),
+                'geolocation_lat'  => $request->input('location.lat'),
                 'geolocation_long' => $request->input('location.lng'),
-                'notes' => $request->notes,
+                'notes'            => $request->notes,
             ]);
 
-            $previousStatus = $trip->status;
-
-            // 2. Complete the trip
             $trip->update([
-                'status' => 'completed',
-                'pod_id' => $pod->id,
+                'status'       => 'completed',
+                'pod_id'       => $pod->id,
                 'completed_at' => now(),
             ]);
-
-            // 3. Commission deduction — rate from ServiceRate table (fallback to config)
-            $tripPrice = (float) ($trip->price ?? 0);
-            $commissionRate = $this->commissionRateForTrip($trip);
-            $commissionAmount = (float) number_format($tripPrice * $commissionRate, 2, '.', '');
 
             $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
                 ->lockForUpdate()
                 ->first();
 
             if (!$wallet) {
-                throw new \Exception('Driver wallet not found');
-            }
+                Log::warning('completeWithPod: wallet not found for driver ' . $driver->id);
+                $commissionAmount = 0;
+            } else {
+                if ($commissionAmount > 0) {
+                    $newBalance    = $wallet->balance - $commissionAmount;
+                    $clampedBalance = max($newBalance, 0);
 
-            if ($commissionAmount > 0) {
-                $newBalance = $wallet->balance - $commissionAmount;
-                $clampedBalance = max($newBalance, 0);
+                    $walletUpdate = ['balance' => $clampedBalance];
 
-                $wallet->update(['balance' => $clampedBalance]);
+                    if ($newBalance <= 0) {
+                        $walletUpdate += [
+                            'is_blocked'     => 1,
+                            'blocked_reason' => 'Insufficient balance',
+                            'blocked_at'     => now(),
+                        ];
+                        $driver->update(['status' => 'balance_depleted', 'is_online' => 0]);
+                    }
 
-                $wallet->transactions()->create([
-                    'type' => 'commission',
-                    'amount' => $commissionAmount,
-                    'direction' => 'DEBIT',
-                    'reference_type' => 'trip',
-                    'reference_id' => $trip->id,
-                ]);
+                    $wallet->update($walletUpdate);
 
-                // Block driver if balance depleted
-                if ($newBalance <= 0) {
-                    $wallet->update([
-                        'is_blocked' => 1,
-                        'blocked_reason' => 'Insufficient balance',
-                        'blocked_at' => now(),
-                    ]);
-
-                    $driver->update([
-                        'status' => 'balance_depleted',
-                        'is_online' => 0,
+                    $wallet->transactions()->create([
+                        'type'           => 'commission',
+                        'amount'         => $commissionAmount,
+                        'direction'      => 'DEBIT',
+                        'reference_type' => 'trip',
+                        'reference_id'   => $trip->id,
                     ]);
                 }
-            }
 
-            // 5. Release driver only if wallet is OK
-            $freshWallet = \App\Models\Wallet::where('driver_id', $driver->id)->first();
+                $finalWalletBalance = (float) $wallet->balance;
 
-            if ($freshWallet && $freshWallet->balance > 0 && !$freshWallet->is_blocked) {
-                $driver->update([
-                    'status' => 'available',
-                    'is_online' => 1,
-                ]);
+                if ($wallet->balance > 0 && !$wallet->is_blocked) {
+                    $driver->update(['status' => 'available', 'is_online' => 1]);
+                }
             }
 
             DB::commit();
 
-            // Capture locals for use outside try/catch
-            $completedPod       = $pod;
-            $completedTrip      = $trip->fresh();
-            $completedPrevious  = $previousStatus;
-            $completedCommission = $commissionAmount;
-            $completedWallet    = $freshWallet;
-
         } catch (\Exception $e) {
             DB::rollBack();
-
             Log::error('POD completion failed: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to complete delivery: ' . $e->getMessage()
+                'message' => 'Failed to complete delivery: ' . $e->getMessage(),
             ], 500);
         }
 
-        // Notifications and broadcasts run AFTER the response is assembled,
-        // outside the DB transaction so they cannot cause a rollback.
-        app()->terminating(function () use ($completedTrip, $completedPod, $completedPrevious, $completedCommission, $completedWallet, $driver) {
+        $completedTrip = $trip->fresh();
+        $podId         = $pod->id;
+
+        // Dispatch WhatsApp notification to queue (non-blocking)
+        \App\Jobs\SendTripCompletionNotifications::dispatch($trip->id, $driver->id, $podId);
+
+        // Fast broadcasts via Reverb — keep in terminating (local, < 50 ms)
+        app()->terminating(function () use ($completedTrip, $pod, $previousStatus, $commissionAmount, $finalWalletBalance, $driver) {
             try {
-                $this->sendCustomerCompletionNotification($completedTrip, $completedPod, $driver);
-                $this->notifyCustomerDelivered($completedTrip, $driver, $completedPod);
-            } catch (\Exception $e) {
-                Log::error('completeWithPod notification failed: ' . $e->getMessage());
-            }
-            try {
-                broadcast(new TripStatusChanged($completedTrip, $completedPrevious, [
-                    'completed' => true,
-                    'pod_id' => $completedPod->id,
-                    'commission_deducted' => $completedCommission,
-                    'wallet_balance' => $completedWallet->balance ?? 0,
+                broadcast(new TripStatusChanged($completedTrip, $previousStatus, [
+                    'completed'           => true,
+                    'pod_id'              => $pod->id,
+                    'commission_deducted' => $commissionAmount,
+                    'wallet_balance'      => $finalWalletBalance,
                 ]));
                 broadcast(new TripCompleted($completedTrip, $driver->id));
             } catch (\Exception $e) {
@@ -652,19 +634,19 @@ class DeliveryController extends Controller
         });
 
         return response()->json([
-            'success' => true,
-            'message' => 'Delivery completed successfully',
-            'trip' => $completedTrip,
+            'success'             => true,
+            'message'             => 'Delivery completed successfully',
+            'trip'                => $completedTrip,
             'pod' => [
-                'id' => $completedPod->id,
-                'photos' => $completedPod->photo_urls,
-                'signature' => $completedPod->signature,
-                'receiver_name' => $completedPod->receiver_name,
-                'timestamp' => $completedPod->timestamp?->toIso8601String(),
+                'id'            => $pod->id,
+                'photos'        => $pod->photo_urls,
+                'signature'     => $pod->signature,
+                'receiver_name' => $pod->receiver_name,
+                'timestamp'     => $pod->timestamp?->toIso8601String(),
             ],
-            'commission_deducted' => $completedCommission,
-            'wallet_balance' => $completedWallet->balance ?? 0,
-            'driver_blocked' => ($completedWallet->balance ?? 0) <= 0,
+            'commission_deducted' => $commissionAmount,
+            'wallet_balance'      => $finalWalletBalance,
+            'driver_blocked'      => $finalWalletBalance <= 0,
         ]);
     }
 
@@ -704,112 +686,101 @@ class DeliveryController extends Controller
             ], 422);
         }
 
+        // Read commission rate BEFORE the transaction (pure read, no lock needed)
+        $tripPrice      = (float) ($trip->price ?? 0);
+        $commissionRate = $this->commissionRateForTrip($trip);
+        $commissionAmount = (float) number_format($tripPrice * $commissionRate, 2, '.', '');
+
+        $previousStatus   = $trip->status;
+        $finalWalletBalance = 0;
+
         DB::beginTransaction();
 
         try {
-            $previousStatus = $trip->status;
-
-            // Complete the trip without POD
             $trip->update([
-                'status' => 'completed',
+                'status'       => 'completed',
                 'completed_at' => now(),
             ]);
-
-            // Commission deduction — rate from ServiceRate table (fallback to config)
-            $tripPrice = (float) ($trip->price ?? 0);
-            $commissionRate = $this->commissionRateForTrip($trip);
-            $commissionAmount = (float) number_format($tripPrice * $commissionRate, 2, '.', '');
 
             $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
                 ->lockForUpdate()
                 ->first();
 
             if (!$wallet) {
-                throw new \Exception('Driver wallet not found');
-            }
+                // Wallet missing: complete the trip but skip commission
+                Log::warning('completeSimple: wallet not found for driver ' . $driver->id);
+                $commissionAmount = 0;
+            } else {
+                if ($commissionAmount > 0) {
+                    $newBalance    = $wallet->balance - $commissionAmount;
+                    $clampedBalance = max($newBalance, 0);
 
-            if ($commissionAmount > 0) {
-                $newBalance = $wallet->balance - $commissionAmount;
-                $clampedBalance = max($newBalance, 0);
+                    $walletUpdate = ['balance' => $clampedBalance];
 
-                $wallet->update(['balance' => $clampedBalance]);
+                    if ($newBalance <= 0) {
+                        $walletUpdate += [
+                            'is_blocked'     => 1,
+                            'blocked_reason' => 'Insufficient balance',
+                            'blocked_at'     => now(),
+                        ];
+                        $driver->update(['status' => 'balance_depleted', 'is_online' => 0]);
+                    }
 
-                $wallet->transactions()->create([
-                    'type' => 'commission',
-                    'amount' => $commissionAmount,
-                    'direction' => 'DEBIT',
-                    'reference_type' => 'trip',
-                    'reference_id' => $trip->id,
-                ]);
+                    $wallet->update($walletUpdate);
 
-                if ($newBalance <= 0) {
-                    $wallet->update([
-                        'is_blocked' => 1,
-                        'blocked_reason' => 'Insufficient balance',
-                        'blocked_at' => now(),
-                    ]);
-
-                    $driver->update([
-                        'status' => 'balance_depleted',
-                        'is_online' => 0,
+                    $wallet->transactions()->create([
+                        'type'           => 'commission',
+                        'amount'         => $commissionAmount,
+                        'direction'      => 'DEBIT',
+                        'reference_type' => 'trip',
+                        'reference_id'   => $trip->id,
                     ]);
                 }
-            }
 
-            // Release driver if wallet OK
-            $freshWallet = \App\Models\Wallet::where('driver_id', $driver->id)->first();
+                $finalWalletBalance = (float) $wallet->balance;
 
-            if ($freshWallet && $freshWallet->balance > 0 && !$freshWallet->is_blocked) {
-                $driver->update([
-                    'status' => 'available',
-                    'is_online' => 1,
-                ]);
+                if ($wallet->balance > 0 && !$wallet->is_blocked) {
+                    $driver->update(['status' => 'available', 'is_online' => 1]);
+                }
             }
 
             DB::commit();
 
-            $simpleTrip       = $trip->fresh();
-            $simplePrevious   = $previousStatus;
-            $simpleCommission = $commissionAmount;
-            $simpleWallet     = $freshWallet;
-
         } catch (\Exception $e) {
             DB::rollBack();
-
             Log::error('Simple completion failed: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to complete trip: ' . $e->getMessage()
+                'message' => 'Failed to complete trip: ' . $e->getMessage(),
             ], 500);
         }
 
-        // Notifications outside the transaction — cannot cause a rollback.
-        app()->terminating(function () use ($simpleTrip, $simplePrevious, $simpleCommission, $simpleWallet, $driver) {
+        $completedTrip = $trip->fresh();
+
+        // Dispatch WhatsApp notification to queue (non-blocking)
+        \App\Jobs\SendTripCompletionNotifications::dispatch($trip->id, $driver->id);
+
+        // Fast broadcasts via Reverb — keep in terminating (local, < 50 ms)
+        app()->terminating(function () use ($completedTrip, $previousStatus, $commissionAmount, $finalWalletBalance, $driver) {
             try {
-                $this->sendCustomerCompletionNotification($simpleTrip, null, $driver);
-            } catch (\Exception $e) {
-                Log::error('completeSimple notification failed: ' . $e->getMessage());
-            }
-            try {
-                broadcast(new TripStatusChanged($simpleTrip, $simplePrevious, [
-                    'completed' => true,
-                    'commission_deducted' => $simpleCommission,
-                    'wallet_balance' => $simpleWallet->balance ?? 0,
+                broadcast(new TripStatusChanged($completedTrip, $previousStatus, [
+                    'completed'          => true,
+                    'commission_deducted' => $commissionAmount,
+                    'wallet_balance'     => $finalWalletBalance,
                 ]));
-                broadcast(new TripCompleted($simpleTrip, $driver->id));
+                broadcast(new TripCompleted($completedTrip, $driver->id));
             } catch (\Exception $e) {
                 Log::error('completeSimple broadcast failed: ' . $e->getMessage());
             }
         });
 
         return response()->json([
-            'success' => true,
-            'message' => 'Trip completed successfully',
-            'trip' => $simpleTrip,
-            'commission_deducted' => $simpleCommission,
-            'wallet_balance' => $simpleWallet->balance ?? 0,
-            'driver_blocked' => ($simpleWallet->balance ?? 0) <= 0,
+            'success'            => true,
+            'message'            => 'Trip completed successfully',
+            'trip'               => $completedTrip,
+            'commission_deducted' => $commissionAmount,
+            'wallet_balance'     => $finalWalletBalance,
+            'driver_blocked'     => $finalWalletBalance <= 0,
         ]);
     }
 
