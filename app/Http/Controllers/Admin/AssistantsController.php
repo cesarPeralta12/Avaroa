@@ -51,17 +51,37 @@ class AssistantsController extends Controller
         $data = [
             'name'           => $request->input('name'),
             'email'          => $request->input('email'),
-            'phone'          => $request->input('phone'),
             'password'       => Hash::make($request->input('password')),
             'is_super_admin' => 0,
             'is_active'      => 1,
         ];
 
+        // Optional columns — only set if they exist to avoid NOT NULL errors
+        if (Schema::hasColumn('users', 'phone')) {
+            $data['phone'] = $request->input('phone');
+        } elseif (Schema::hasColumn('users', 'whatsapp_number')) {
+            $data['whatsapp_number'] = $request->input('phone');
+        }
+
         if (Schema::hasColumn('users', 'role')) {
             $data['role'] = 'asistente';
         }
 
-        User::create($data);
+        if (Schema::hasColumn('users', 'account_type')) {
+            $data['account_type'] = 'admin';
+        }
+
+        if (Schema::hasColumn('users', 'status')) {
+            $data['status'] = 'active';
+        }
+
+        try {
+            User::create($data);
+        } catch (\Exception $e) {
+            \Log::error('AssistantsController@store failed: ' . $e->getMessage());
+            return redirect()->route('admin.assistants.index')
+                ->with('error', 'Error al crear el asistente: ' . $e->getMessage());
+        }
 
         return redirect()->route('admin.assistants.index')
             ->with('success', 'Asistente creado correctamente.');
