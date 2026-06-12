@@ -820,10 +820,18 @@ class WhatsAppService
         }
 
         $driver = Driver::with('user')->find($trip->driver_id);
-        $vehicle = Vehicle::find($trip->vehicle_id);
+        $vehicle = Vehicle::find($trip->vehicle_id)
+            ?? ($trip->driver_id ? Vehicle::where('driver_id', $trip->driver_id)->first() : null);
 
-        $msg = $this->buildDriverAssignedMessage($trip, $driver, $vehicle, $session);
-        $this->sendToUser($user, $msg, $session->id, $trip->id, $language);
+        // Only send proactive assignment card if it hasn't been sent yet by the APK/DriverAssignment path
+        $cacheKey = "customer_assigned_notified_{$trip->id}";
+        $alreadyNotified = \Illuminate\Support\Facades\Cache::has($cacheKey);
+
+        if (!$alreadyNotified) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, true, 90);
+            $msg = $this->buildDriverAssignedMessage($trip, $driver, $vehicle, $session);
+            $this->sendToUser($user, $msg, $session->id, $trip->id, $language);
+        }
     }
 
     /**
@@ -893,7 +901,8 @@ class WhatsAppService
         }
 
         $driver = Driver::with('user')->find($trip?->driver_id);
-        $vehicle = Vehicle::find($trip?->vehicle_id);
+        $vehicle = Vehicle::find($trip?->vehicle_id)
+            ?? ($trip?->driver_id ? Vehicle::where('driver_id', $trip->driver_id)->first() : null);
         $voc = $trip ? $trip->messageVocabulary() : (new Trip())->messageVocabulary();
         $driverName = $driver?->user?->name ?? $voc['role_cap'];
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
@@ -924,7 +933,8 @@ class WhatsAppService
         }
 
         $driver = Driver::with('user')->find($trip?->driver_id);
-        $vehicle = Vehicle::find($trip?->vehicle_id);
+        $vehicle = Vehicle::find($trip?->vehicle_id)
+            ?? ($trip?->driver_id ? Vehicle::where('driver_id', $trip->driver_id)->first() : null);
         $voc = $trip ? $trip->messageVocabulary() : (new Trip())->messageVocabulary();
         $driverName = $driver?->user?->name ?? $voc['role_cap'];
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
@@ -956,7 +966,8 @@ class WhatsAppService
         }
 
         $driver = Driver::with('user')->find($trip?->driver_id);
-        $vehicle = Vehicle::find($trip?->vehicle_id);
+        $vehicle = Vehicle::find($trip?->vehicle_id)
+            ?? ($trip?->driver_id ? Vehicle::where('driver_id', $trip->driver_id)->first() : null);
         $voc = $trip ? $trip->messageVocabulary() : (new Trip())->messageVocabulary();
         $driverName = $driver?->user?->name ?? $voc['role_cap'];
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);

@@ -99,8 +99,11 @@ class DeliveryController extends Controller
 
                 $previousStatus = $trip->status;
 
+                $tripVehicle = \App\Models\Vehicle::where('driver_id', $driver->id)->first();
+
                 $trip->update([
                     'driver_id'   => $driver->id,
+                    'vehicle_id'  => $tripVehicle?->id,
                     'status'      => 'accepted',
                     'accepted_at' => now(),
                 ]);
@@ -956,7 +959,17 @@ class DeliveryController extends Controller
 
     protected function notifyCustomerAssigned(Trip $trip, Driver $driver): void
     {
-        $whatsappService = app(\App\Services\MetaWhatsAppService::class);
+        if (!$trip->customer || !$trip->customer->whatsapp_number) {
+            return;
+        }
+
+        // Deduplication: prevent double notification when both WhatsApp and APK flows fire
+        $cacheKey = "customer_assigned_notified_{$trip->id}";
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            Log::info('Assignment notification already sent, skipping duplicate', ['trip_id' => $trip->id]);
+            return;
+        }
+        \Illuminate\Support\Facades\Cache::put($cacheKey, true, 90);
 
         $voc = $trip->messageVocabulary();
         $isPassenger = $trip->isPassengerService();
@@ -964,36 +977,30 @@ class DeliveryController extends Controller
         $driverPhone = $driver->user->whatsapp_number ?? 'N/A';
         $priceFormatted = 'Bs ' . number_format($trip->price ?? 0, 2);
 
-        $templateSent = $whatsappService->sendTemplateMessage(
-            $trip->customer->whatsapp_number,
-            'courier_assigned_sp',
-            [
-                $driverName,
-                $priceFormatted,
-            ]
-        );
+        // Look up vehicle by vehicle_id first (set during accept), fallback to driver's primary vehicle
+        $vehicle = \App\Models\Vehicle::find($trip->vehicle_id)
+            ?? \App\Models\Vehicle::where('driver_id', $driver->id)->first();
+        $vehicleDisplay = $this->formatVehicleForCustomer($vehicle);
 
-        if (!$templateSent) {
-            $vehicle = \App\Models\Vehicle::where('driver_id', $driver->id)->first();
-            $vehicleDisplay = $this->formatVehicleForCustomer($vehicle);
+        $serviceLabel = strtoupper((string) ($trip->service_type ?: $voc['subject']));
+        $closingLine = $isPassenger
+            ? '🚕 El conductor va camino a recogerte.'
+            : '🚚 El mensajero va camino al punto de recogida del paquete.';
 
-            $serviceLabel = strtoupper((string) ($trip->service_type ?: $voc['subject']));
-            $closingLine = $isPassenger
-                ? '🚕 El conductor va camino a recogerte.'
-                : '🚚 El mensajero va camino al punto de recogida del paquete.';
+        $message =
+            "✅ *{$voc['assigned_title']}*\n\n" .
+            "👤 *{$voc['role_cap']}:* {$driverName}\n" .
+            "📱 *Teléfono:* {$driverPhone}\n" .
+            "🛎️ *Servicio:* {$serviceLabel}\n\n" .
+            "{$vehicleDisplay}\n\n" .
+            "💰 *Precio:* {$priceFormatted}\n\n" .
+            $closingLine . "\n\n" .
+            "Envía *ESTADO* para actualizaciones.";
 
-            $message =
-                "✅ *{$voc['assigned_title']}*\n\n" .
-                "👤 *{$voc['role_cap']}:* {$driverName}\n" .
-                "📱 *Teléfono:* {$driverPhone}\n" .
-                "🛎️ *Servicio:* {$serviceLabel}\n\n" .
-                "{$vehicleDisplay}\n\n" .
-                "💰 *Precio:* {$priceFormatted}\n\n" .
-                $closingLine . "\n\n" .
-                "Envía *ESTADO* para actualizaciones.";
+        app(\App\Services\MetaWhatsAppService::class)
+            ->sendMessage($trip->customer->whatsapp_number, $message);
 
-            $whatsappService->sendMessage($trip->customer->whatsapp_number, $message);
-        }
+        Log::info('Customer assignment notification sent from DeliveryController', ['trip_id' => $trip->id]);
     }
 
     /**

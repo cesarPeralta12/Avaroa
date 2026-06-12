@@ -11,6 +11,7 @@ use App\Models\Driver;
 use App\Models\DriverRequest;
 use App\Models\ConversationSession;
 use App\Models\Vehicle;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -842,6 +843,18 @@ class DriverAssignmentService
 
     protected function notifyCustomerDriverAssigned(Trip $trip, Driver $driver, ?Vehicle $vehicle): void
     {
+        if (!$trip->customer || !$trip->customer->whatsapp_number) {
+            return;
+        }
+
+        // Deduplication: prevent double notification when both WhatsApp and APK flows fire
+        $cacheKey = "customer_assigned_notified_{$trip->id}";
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            Log::info('Assignment notification already sent, skipping duplicate', ['trip_id' => $trip->id]);
+            return;
+        }
+        \Illuminate\Support\Facades\Cache::put($cacheKey, true, 90);
+
         $voc = $trip->messageVocabulary();
         $isPassenger = $trip->isPassengerService();
 
