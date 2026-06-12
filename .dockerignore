@@ -1,0 +1,52 @@
+# Dependencies (installed during build)
+vendor/
+node_modules/
+
+# Git history
+.git/
+.gitignore
+.gitattributes
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Dev tools
+.editorconfig
+.phpunit.result.cache
+phpunit.xml
+phpunit.xml.dist
+
+# Tests
+tests/
+coverage/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts (regenerated during build)
+public/build/
+public/hot
+public/storage
+
+# Logs
+storage/logs/*.log
+*.log
+
+# Docker files (don't nest)
+docker/
+
+# Documentation
+*.md
+docs/
+
+# CI
+.github/
