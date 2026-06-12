@@ -577,7 +577,7 @@ class DeliveryController extends Controller
                 $wallet->update(['balance' => $clampedBalance]);
 
                 $wallet->transactions()->create([
-                    'type' => 'commission_debit',
+                    'type' => 'commission',
                     'amount' => $commissionAmount,
                     'direction' => 'DEBIT',
                     'reference_type' => 'trip',
@@ -735,7 +735,7 @@ class DeliveryController extends Controller
                 $wallet->update(['balance' => $clampedBalance]);
 
                 $wallet->transactions()->create([
-                    'type' => 'commission_debit',
+                    'type' => 'commission',
                     'amount' => $commissionAmount,
                     'direction' => 'DEBIT',
                     'reference_type' => 'trip',
