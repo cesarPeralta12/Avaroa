@@ -11,6 +11,7 @@ use App\Models\ConversationSession;
 use App\Models\Driver;
 use App\Models\DriverRequest;
 use App\Models\ProofOfDelivery;
+use App\Models\ServiceRate;
 use Carbon\Carbon;
 use App\Models\Trip;
 use App\Services\DriverAssignmentService;
@@ -266,6 +267,21 @@ class DeliveryController extends Controller
     {
         if (!$distance) return 30;
         return (int) ceil(($distance * 2) + 10);
+    }
+
+    private function commissionRateForTrip(Trip $trip): float
+    {
+        try {
+            $rate = $trip->service_type
+                ? ServiceRate::forService($trip->service_type)
+                : null;
+            if ($rate) {
+                return (float) $rate->commission_rate;
+            }
+        } catch (\Exception $e) {
+            Log::warning('ServiceRate commission lookup failed: ' . $e->getMessage());
+        }
+        return (float) config('avaroa.fare.commission_rate', 0.13);
     }
 
     /**
@@ -541,9 +557,10 @@ class DeliveryController extends Controller
                 'completed_at' => now(),
             ]);
 
-            // 3. Commission Deduction (13%)
+            // 3. Commission deduction — rate from ServiceRate table (fallback to config)
             $tripPrice = (float) ($trip->price ?? 0);
-            $commissionAmount = (float) number_format($tripPrice * config('avaroa.fare.commission_rate', 0.13), 2, '.', '');
+            $commissionRate = $this->commissionRateForTrip($trip);
+            $commissionAmount = (float) number_format($tripPrice * $commissionRate, 2, '.', '');
 
             $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
                 ->lockForUpdate()
@@ -560,7 +577,7 @@ class DeliveryController extends Controller
                 $wallet->update(['balance' => $clampedBalance]);
 
                 $wallet->transactions()->create([
-                    'type' => 'commission',
+                    'type' => 'commission_debit',
                     'amount' => $commissionAmount,
                     'direction' => 'DEBIT',
                     'reference_type' => 'trip',
@@ -698,9 +715,10 @@ class DeliveryController extends Controller
                 'completed_at' => now(),
             ]);
 
-            // Commission Deduction (13%)
+            // Commission deduction — rate from ServiceRate table (fallback to config)
             $tripPrice = (float) ($trip->price ?? 0);
-            $commissionAmount = (float) number_format($tripPrice * config('avaroa.fare.commission_rate', 0.13), 2, '.', '');
+            $commissionRate = $this->commissionRateForTrip($trip);
+            $commissionAmount = (float) number_format($tripPrice * $commissionRate, 2, '.', '');
 
             $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
                 ->lockForUpdate()
@@ -717,7 +735,7 @@ class DeliveryController extends Controller
                 $wallet->update(['balance' => $clampedBalance]);
 
                 $wallet->transactions()->create([
-                    'type' => 'commission',
+                    'type' => 'commission_debit',
                     'amount' => $commissionAmount,
                     'direction' => 'DEBIT',
                     'reference_type' => 'trip',

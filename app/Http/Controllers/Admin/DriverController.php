@@ -331,6 +331,14 @@ class DriverController extends Controller
 
             if ($willBeSuspended) {
                 $driver->update(['status' => 'offline']);
+                $driverId = $driver->id;
+                app()->terminating(function () use ($driverId) {
+                    try {
+                        broadcast(new \App\Events\DriverStatusChanged($driverId, 'suspended'));
+                    } catch (\Exception $e) {
+                        \Log::error('DriverStatusChanged broadcast failed: ' . $e->getMessage());
+                    }
+                });
             }
 
             return response()->json([
@@ -379,6 +387,16 @@ class DriverController extends Controller
             } catch (\Throwable $e) {
                 \Log::warning('WhatsApp notification failed after driver rejection: ' . $e->getMessage());
             }
+
+            $driverId = $driver->id;
+            $rejectionReason = $request->reason;
+            app()->terminating(function () use ($driverId, $rejectionReason) {
+                try {
+                    broadcast(new \App\Events\DriverStatusChanged($driverId, 'rejected', $rejectionReason));
+                } catch (\Exception $e) {
+                    \Log::error('DriverStatusChanged broadcast failed: ' . $e->getMessage());
+                }
+            });
 
             return response()->json([
                 'success' => true,

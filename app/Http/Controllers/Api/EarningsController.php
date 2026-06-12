@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ServiceRate;
 use App\Models\Trip;
 use App\Models\WalletTransaction;
 use Carbon\Carbon;
@@ -64,7 +65,7 @@ class EarningsController extends Controller
                 'totalTrips' => $totalTrips,
                 'totalOnlineHours' => round($totalOnlineHours, 1),
                 'ratePerMinute'  => (float) config('avaroa.fare.per_minute', 1.15),
-                'commissionRate' => (float) config('avaroa.fare.commission_rate', 0.13),
+                'commissionRate' => $this->globalCommissionRate(),
             ],
         ]);
     }
@@ -127,12 +128,12 @@ class EarningsController extends Controller
 
         // Get commission debits and earnings
         $transactions = WalletTransaction::where('wallet_id', $wallet->id)
-            ->whereIn('type', ['commission_debit', 'topup', 'adjustment'])
+            ->whereIn('type', ['commission_debit', 'commission', 'topup', 'adjustment'])
             ->orderBy('created_at', 'desc')
             ->take(50)
             ->get()
             ->map(function ($txn) {
-                $isCommission = $txn->type === 'commission_debit';
+                $isCommission = in_array($txn->type, ['commission_debit', 'commission']);
 
                 return [
                     'id' => $txn->id,
@@ -151,5 +152,18 @@ class EarningsController extends Controller
             'success' => true,
             'data' => $transactions,
         ]);
+    }
+
+    private function globalCommissionRate(): float
+    {
+        try {
+            $rate = ServiceRate::first();
+            if ($rate) {
+                return (float) $rate->commission_rate;
+            }
+        } catch (\Exception $e) {
+            // service_rates table may not exist yet
+        }
+        return (float) config('avaroa.fare.commission_rate', 0.13);
     }
 }
