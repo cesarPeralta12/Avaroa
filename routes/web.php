@@ -57,6 +57,8 @@ use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\TripController;
 use App\Http\Controllers\Admin\VehicleController;
+use App\Http\Controllers\Admin\ServiceRateController;
+use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\SetLocale;
 use App\Models\Language;
@@ -334,6 +336,17 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
         // Pricing Rules
         Route::resource('pricing-rules', PricingRuleController::class)->except(['show']);
         Route::post('pricing-rules/bulk-delete', [PricingRuleController::class, 'bulkDelete'])->name('pricing-rules.bulk.delete');
+
+        // Service Rates (per-service pricing & commission) — admin only
+        Route::get('/service-rates', [ServiceRateController::class, 'index'])->name('admin.service-rates.index');
+        Route::put('/service-rates/{serviceRate}', [ServiceRateController::class, 'update'])->name('admin.service-rates.update');
+
+        // Admin Users Management — admin only
+        Route::get('/users-management', [AdminUsersController::class, 'index'])->name('admin.users.index');
+        Route::get('/users-management/{user}/edit', [AdminUsersController::class, 'edit'])->name('admin.users.edit');
+        Route::put('/users-management/{user}', [AdminUsersController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users-management/{user}', [AdminUsersController::class, 'destroy'])->name('admin.users.destroy');
+        Route::post('/users-management/{user}/role', [AdminUsersController::class, 'changeRole'])->name('admin.users.change-role');
 
         // Audit Logs (read-only mostly)
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

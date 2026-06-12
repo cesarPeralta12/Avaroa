@@ -1,7 +1,8 @@
 @php
     $isSuperAdmin = $user_session->is_super_admin;
+    $isOperator = !$isSuperAdmin && ($user_session->role ?? 'customer') === 'operator';
 @endphp
-@if ($isSuperAdmin)
+@if ($isSuperAdmin || $isOperator)
     <div class="sidebar-wrapper">
         <div>
             <div class="logo-wrapper"><a href="{{ route('dashboard') }}">
@@ -321,7 +322,17 @@
                         <!--        <span>{{ __('Withdrawals') }}</span>-->
                         <!--    </a>-->
                         <!--</li>-->
-{{-- Wallet Management --}}
+                        {{-- Tarifas por Servicio (admin only) --}}
+                        @if($isSuperAdmin)
+                        <li class="sidebar-list {{ Request::routeIs('admin.service-rates.*') ? 'active' : '' }}">
+                            <a class="sidebar-link sidebar-title link-nav" href="{{ route('admin.service-rates.index') }}">
+                                <i class="fas fa-coins text-light"></i>&nbsp;&nbsp;&nbsp;
+                                <span>Tarifas por Servicio</span>
+                            </a>
+                        </li>
+                        @endif
+
+                        {{-- Wallet Management --}}
                         <li
                             class="sidebar-list {{ Request::routeIs('wallets.*', 'topup-requests.*', 'wallet-transactions.*') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title" href="javascript:void(0)">
@@ -408,6 +419,17 @@
 <!--        </li>-->
 <!--    </ul>-->
 <!--</li>-->
+
+                        {{-- Gestión de Usuarios (admin only) --}}
+                        @if($isSuperAdmin)
+                        <li class="sidebar-list {{ Request::routeIs('admin.users.*') ? 'active' : '' }}">
+                            <a class="sidebar-link sidebar-title link-nav" href="{{ route('admin.users.index') }}">
+                                <i class="fas fa-user-cog text-light"></i>&nbsp;&nbsp;&nbsp;
+                                <span>Gestión de Usuarios</span>
+                            </a>
+                        </li>
+                        @endif
+
                     </ul>
                 </div>
                 <div class="right-arrow" id="right-arrow"><i data-feather="arrow-right"></i></div>

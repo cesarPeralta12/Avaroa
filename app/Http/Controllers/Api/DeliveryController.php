@@ -83,7 +83,7 @@ class DeliveryController extends Controller
                 }
 
                 $wallet = $driver->wallet ?? null;
-                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * 0.13);
+                $estimatedCommission = ceil(($trip->price ?? $trip->estimated_fare ?? 0) * config('avaroa.fare.commission_rate', 0.13));
 
                 if (!$wallet || $wallet->balance < $estimatedCommission) {
                     return [
@@ -244,7 +244,7 @@ class DeliveryController extends Controller
                 'cargo_type' => $trip->cargo_type,
                 'estimated_duration' => $this->estimateDuration($trip->distance),
                 'estimated_fare' => (float) ($trip->price ?? $trip->estimated_fare ?? 0),
-                'commission' => ceil((($trip->price ?? $trip->estimated_fare ?? 0)) * 0.13),
+                'commission' => ceil((($trip->price ?? $trip->estimated_fare ?? 0)) * config('avaroa.fare.commission_rate', 0.13)),
                 'customer_note' => $trip->notes,
 
                 // CRITICAL FIX: Include service type and POD requirement
@@ -487,7 +487,7 @@ class DeliveryController extends Controller
         //     ], 422);
         // }
 
-        if (!in_array($trip->status, ['accepted', 'picked_up', 'in_progress', 'driver_arrived'])) {
+        if (!in_array($trip->status, ['accepted', 'picked_up', 'in_progress', 'driver_arrived', 'arrived'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Trip cannot be completed. Current status: ' . $trip->status
@@ -543,7 +543,7 @@ class DeliveryController extends Controller
 
             // 3. Commission Deduction (13%)
             $tripPrice = (float) ($trip->price ?? 0);
-            $commissionAmount = (float) number_format($tripPrice * 0.13, 2, '.', '');
+            $commissionAmount = (float) number_format($tripPrice * config('avaroa.fare.commission_rate', 0.13), 2, '.', '');
 
             $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
                 ->lockForUpdate()
@@ -594,35 +594,12 @@ class DeliveryController extends Controller
 
             DB::commit();
 
-            // 6. Notifications & Broadcasting
-            $this->sendCustomerCompletionNotification($trip, $pod, $driver);
-
-            broadcast(new TripStatusChanged($trip, $previousStatus, [
-                'completed' => true,
-                'pod_id' => $pod->id,
-                'commission_deducted' => $commissionAmount,
-                'wallet_balance' => $freshWallet->balance ?? 0,
-            ]));
-
-            broadcast(new TripCompleted($trip, $driver->id));
-
-            $this->notifyCustomerDelivered($trip, $driver, $pod);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Delivery completed successfully',
-                'trip' => $trip->fresh(),
-                'pod' => [
-                    'id' => $pod->id,
-                    'photos' => $photoUrls,
-                    'signature' => $signatureUrl,
-                    'receiver_name' => $request->receiver_name,
-                    'timestamp' => $pod->timestamp?->toIso8601String(),
-                ],
-                'commission_deducted' => $commissionAmount,
-                'wallet_balance' => $freshWallet->balance ?? 0,
-                'driver_blocked' => ($freshWallet->balance ?? 0) <= 0,
-            ]);
+            // Capture locals for use outside try/catch
+            $completedPod       = $pod;
+            $completedTrip      = $trip->fresh();
+            $completedPrevious  = $previousStatus;
+            $completedCommission = $commissionAmount;
+            $completedWallet    = $freshWallet;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -634,6 +611,44 @@ class DeliveryController extends Controller
                 'message' => 'Failed to complete delivery: ' . $e->getMessage()
             ], 500);
         }
+
+        // Notifications and broadcasts run AFTER the response is assembled,
+        // outside the DB transaction so they cannot cause a rollback.
+        app()->terminating(function () use ($completedTrip, $completedPod, $completedPrevious, $completedCommission, $completedWallet, $driver) {
+            try {
+                $this->sendCustomerCompletionNotification($completedTrip, $completedPod, $driver);
+                $this->notifyCustomerDelivered($completedTrip, $driver, $completedPod);
+            } catch (\Exception $e) {
+                Log::error('completeWithPod notification failed: ' . $e->getMessage());
+            }
+            try {
+                broadcast(new TripStatusChanged($completedTrip, $completedPrevious, [
+                    'completed' => true,
+                    'pod_id' => $completedPod->id,
+                    'commission_deducted' => $completedCommission,
+                    'wallet_balance' => $completedWallet->balance ?? 0,
+                ]));
+                broadcast(new TripCompleted($completedTrip, $driver->id));
+            } catch (\Exception $e) {
+                Log::error('completeWithPod broadcast failed: ' . $e->getMessage());
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery completed successfully',
+            'trip' => $completedTrip,
+            'pod' => [
+                'id' => $completedPod->id,
+                'photos' => $completedPod->photo_urls,
+                'signature' => $completedPod->signature,
+                'receiver_name' => $completedPod->receiver_name,
+                'timestamp' => $completedPod->timestamp?->toIso8601String(),
+            ],
+            'commission_deducted' => $completedCommission,
+            'wallet_balance' => $completedWallet->balance ?? 0,
+            'driver_blocked' => ($completedWallet->balance ?? 0) <= 0,
+        ]);
     }
 
     /**
@@ -665,7 +680,7 @@ class DeliveryController extends Controller
             ], 422);
         }
 
-        if (!in_array($trip->status, ['accepted', 'picked_up', 'in_progress', 'driver_arrived'])) {
+        if (!in_array($trip->status, ['accepted', 'picked_up', 'in_progress', 'driver_arrived', 'arrived'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Trip cannot be completed. Current status: ' . $trip->status
@@ -685,7 +700,7 @@ class DeliveryController extends Controller
 
             // Commission Deduction (13%)
             $tripPrice = (float) ($trip->price ?? 0);
-            $commissionAmount = (float) number_format($tripPrice * 0.13, 2, '.', '');
+            $commissionAmount = (float) number_format($tripPrice * config('avaroa.fare.commission_rate', 0.13), 2, '.', '');
 
             $wallet = \App\Models\Wallet::where('driver_id', $driver->id)
                 ->lockForUpdate()
@@ -735,25 +750,10 @@ class DeliveryController extends Controller
 
             DB::commit();
 
-            // Send completion notification
-            $this->sendCustomerCompletionNotification($trip, null, $driver);
-
-            broadcast(new TripStatusChanged($trip, $previousStatus, [
-                'completed' => true,
-                'commission_deducted' => $commissionAmount,
-                'wallet_balance' => $freshWallet->balance ?? 0,
-            ]));
-
-            broadcast(new TripCompleted($trip, $driver->id));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Trip completed successfully',
-                'trip' => $trip->fresh(),
-                'commission_deducted' => $commissionAmount,
-                'wallet_balance' => $freshWallet->balance ?? 0,
-                'driver_blocked' => ($freshWallet->balance ?? 0) <= 0,
-            ]);
+            $simpleTrip       = $trip->fresh();
+            $simplePrevious   = $previousStatus;
+            $simpleCommission = $commissionAmount;
+            $simpleWallet     = $freshWallet;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -765,6 +765,34 @@ class DeliveryController extends Controller
                 'message' => 'Failed to complete trip: ' . $e->getMessage()
             ], 500);
         }
+
+        // Notifications outside the transaction — cannot cause a rollback.
+        app()->terminating(function () use ($simpleTrip, $simplePrevious, $simpleCommission, $simpleWallet, $driver) {
+            try {
+                $this->sendCustomerCompletionNotification($simpleTrip, null, $driver);
+            } catch (\Exception $e) {
+                Log::error('completeSimple notification failed: ' . $e->getMessage());
+            }
+            try {
+                broadcast(new TripStatusChanged($simpleTrip, $simplePrevious, [
+                    'completed' => true,
+                    'commission_deducted' => $simpleCommission,
+                    'wallet_balance' => $simpleWallet->balance ?? 0,
+                ]));
+                broadcast(new TripCompleted($simpleTrip, $driver->id));
+            } catch (\Exception $e) {
+                Log::error('completeSimple broadcast failed: ' . $e->getMessage());
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Trip completed successfully',
+            'trip' => $simpleTrip,
+            'commission_deducted' => $simpleCommission,
+            'wallet_balance' => $simpleWallet->balance ?? 0,
+            'driver_blocked' => ($simpleWallet->balance ?? 0) <= 0,
+        ]);
     }
 
     /**
@@ -914,7 +942,7 @@ class DeliveryController extends Controller
                 'created_at' => $trip->created_at->toIso8601String(),
                 'completed_at' => $trip->completed_at?->toIso8601String(),
                 'distance' => (float) $trip->distance,
-                'commission' => ceil(($trip->price ?? 0) * 0.13),
+                'commission' => ceil(($trip->price ?? 0) * config('avaroa.fare.commission_rate', 0.13)),
 
                 // CRITICAL FIX: Include service type and POD info
                 'service_type' => $trip->service_type ?? 'delivery',

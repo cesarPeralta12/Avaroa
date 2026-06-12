@@ -55,7 +55,7 @@ class NewDeliveryRequest implements ShouldBroadcastNow
             'estimated_fare' => (float) ($trip->estimated_fare ?? $trip->price ?? 0),
             'currency' => $trip->currency ?? 'Bs',
             'estimated_duration' => $this->calculateDuration($trip),
-            'commission' => ceil(($trip->price ?? 0) * 0.13),
+            'commission' => ceil(($trip->price ?? 0) * config('avaroa.fare.commission_rate', 0.13)),
         ],
         'vehicle_required' => $this->determineVehicleType($trip),
         'created_at' => $trip->created_at->toIso8601String(),

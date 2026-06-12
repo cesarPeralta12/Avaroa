@@ -115,7 +115,9 @@ class Admin extends Controller
             return back()->with('fail', 'Password does not match');
         }
 
-        if (!$user->is_super_admin) {
+        $role = $user->is_super_admin ? 'admin' : ($user->role ?? 'customer');
+
+        if (!in_array($role, ['admin', 'operator'])) {
             return back()->with('fail', 'No tienes permisos para acceder al panel de administración.');
         }
 
@@ -130,10 +132,11 @@ class Admin extends Controller
             'last_seen' => now()
         ]);
 
-        // return response()->json([
-        //     'success' => true,
-        //     'redirect' => url('admin/dashboard')
-        // ]);
+        // Operators land on topup-requests since they can't access dashboard
+        if ($role === 'operator') {
+            return redirect('admin/topup-requests');
+        }
+
         return redirect('admin/dashboard');
     }
     public function getMessages()

@@ -4,11 +4,45 @@ namespace App\Services;
 
 use App\Models\Trip;
 use App\Models\PricingQuote;
+use App\Models\ServiceRate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TripFlowService
 {
+    protected function rateForTrip(Trip $trip): array
+    {
+        $defaults = [
+            'per_minute'        => (float) config('avaroa.fare.per_minute', 1.15),
+            'minimum'           => (float) config('avaroa.fare.minimum', 7.00),
+            'speed'             => (float) config('avaroa.fare.average_speed_kmh', 25),
+            'commission_rate'   => (float) config('avaroa.fare.commission_rate', 0.13),
+            'surcharge_from'    => null,
+            'surcharge_per_head'=> null,
+            'max_passengers'    => null,
+        ];
+
+        try {
+            $serviceType = $trip->service_type ?? null;
+            $rate = $serviceType ? ServiceRate::forService($serviceType) : null;
+
+            if (!$rate) return $defaults;
+
+            return [
+                'per_minute'        => $rate->price_per_minute,
+                'minimum'           => $rate->minimum_fare,
+                'speed'             => $rate->average_speed_kmh,
+                'commission_rate'   => $rate->commission_rate,
+                'surcharge_from'    => $rate->passenger_surcharge_from,
+                'surcharge_per_head'=> $rate->passenger_surcharge_per_head,
+                'max_passengers'    => $rate->max_passengers,
+            ];
+        } catch (\Exception $e) {
+            Log::warning('ServiceRate lookup failed, using defaults: ' . $e->getMessage());
+            return $defaults;
+        }
+    }
+
     protected function averageSpeedKmh(): float
     {
         return (float) config('avaroa.fare.average_speed_kmh', 25);
@@ -53,12 +87,24 @@ class TripFlowService
                 throw new \Exception('Invalid distance');
             }
 
-            $perMinute   = $this->farePerMinute();
-            $minimumFare = $this->minimumFare();
+            $rates       = $this->rateForTrip($trip);
+            $perMinute   = $rates['per_minute'];
+            $minimumFare = $rates['minimum'];
+            $speedKmh    = $rates['speed'];
 
-            $minutes = ($distanceKm / $this->averageSpeedKmh()) * 60;
+            $minutes = ($distanceKm / $speedKmh) * 60;
             $calculatedFare = round($minutes * $perMinute, 2);
             $finalFare = max($calculatedFare, $minimumFare);
+
+            // Passenger surcharge for taxi/mototaxi
+            $passengers = (int) ($trip->passenger_count ?? 1);
+            $surchargeFrom = $rates['surcharge_from'];
+            $surchargePerHead = $rates['surcharge_per_head'];
+            $maxPassengers = $rates['max_passengers'];
+            if ($surchargeFrom && $surchargePerHead && $passengers > $surchargeFrom) {
+                $extraHeads = $passengers - $surchargeFrom;
+                $finalFare = round($finalFare + ($extraHeads * $surchargePerHead), 2);
+            }
 
             $trip->update([
                 'price' => $finalFare,

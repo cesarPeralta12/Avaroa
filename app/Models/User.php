@@ -54,6 +54,7 @@ class User extends Authenticatable
 
         'is_system',
         'is_super_admin',
+        'role',
         'permissions',
 
         'whatsapp_number',
