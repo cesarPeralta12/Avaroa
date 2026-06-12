@@ -72,7 +72,7 @@ class AssistantsController extends Controller
         }
 
         if (Schema::hasColumn('users', 'status')) {
-            $data['status'] = 'active';
+            $data['status'] = 1;
         }
 
         try {

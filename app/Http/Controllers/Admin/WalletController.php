@@ -114,17 +114,19 @@ class WalletController extends Controller
                 'blocked_at' => $wallet->is_blocked ? null : now(),
             ]);
 
-            $action = $wallet->is_blocked ? 'blocked' : 'unblocked';
+            $message = $wallet->is_blocked
+                ? 'Billetera bloqueada correctamente'
+                : 'Billetera desbloqueada correctamente';
 
             return response()->json([
                 'success' => true,
-                'message' => "Wallet has been {$action} successfully",
+                'message' => $message,
                 'is_blocked' => $wallet->is_blocked
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update wallet status: ' . $e->getMessage()
+                'message' => 'Error al actualizar estado de la billetera: ' . $e->getMessage()
             ], 500);
         }
     }

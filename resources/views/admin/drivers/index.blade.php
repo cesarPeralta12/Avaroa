@@ -395,18 +395,30 @@ $(function(){
 
         Swal.fire({
             title: `¿Deshabilitar a ${name}?`,
-            html: `El conductor <strong>no podrá acceder a la app</strong>.<br><br>Sus datos, documentos y vehículos se conservan en la base de datos. Puedes reactivarlo en cualquier momento con el botón <strong>Reactivar</strong>.`,
+            html: `
+                <p>El conductor <strong>no podrá acceder a la app</strong>. Puedes reactivarlo en cualquier momento.</p>
+                <div class="mt-3 text-start">
+                    <label class="form-label small fw-semibold">Motivo (opcional — se mostrará al conductor):</label>
+                    <textarea id="swal-reason" class="form-control" rows="2" placeholder="Ej: Documentos vencidos, comportamiento inapropiado..."></textarea>
+                </div>
+            `,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             confirmButtonText: 'Sí, deshabilitar',
-            cancelButtonText: 'Cancelar'
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                return { reason: document.getElementById('swal-reason').value.trim() };
+            }
         }).then((result) => {
             if(result.isConfirmed){
                 $.ajax({
                     url: url,
                     type: 'DELETE',
-                    data: {_token: "{{ csrf_token() }}"},
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        reason: result.value.reason
+                    },
                     success: function(r){
                         if(r.success){
                             Swal.fire('Deshabilitado', `${name} ha sido deshabilitado.`, 'success')

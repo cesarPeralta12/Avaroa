@@ -229,14 +229,25 @@ class DriverController extends Controller
     /**
      * Delete driver
      */
-    public function destroy(Driver $driver)
+    public function destroy(Request $request, Driver $driver)
     {
         if (!Session::has('LoggedIn')) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
-        $driver->update(['status' => 'offline']);
+        $reason = $request->input('reason', '');
+
+        $driver->update(['status' => 'offline', 'is_online' => false]);
         $driver->user?->update(['is_active' => false]);
+
+        $driverId = $driver->id;
+        app()->terminating(function () use ($driverId, $reason) {
+            try {
+                broadcast(new \App\Events\DriverStatusChanged($driverId, 'disabled', $reason));
+            } catch (\Exception $e) {
+                \Log::error('DriverStatusChanged broadcast failed: ' . $e->getMessage());
+            }
+        });
 
         return response()->json(['success' => true, 'message' => 'Conductor deshabilitado']);
     }

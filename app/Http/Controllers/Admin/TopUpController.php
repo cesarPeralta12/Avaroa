@@ -110,6 +110,12 @@ class TopUpController extends Controller
 
             DB::commit();
 
+            // Reactivate driver if they were blocked due to low balance
+            $driver = $topUpRequest->driver;
+            if ($driver && in_array($driver->status, ['balance_depleted', 'offline'])) {
+                $driver->update(['status' => 'available', 'is_online' => 1]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Top-up request approved successfully',

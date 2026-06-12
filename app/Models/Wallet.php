@@ -53,15 +53,18 @@ class Wallet extends Model
     {
         $this->increment('balance', $amount);
 
-        // Reset expiration tracking on new recharge
+        // Reset expiration tracking and unblock on new recharge
         if ($type === 'topup') {
             $days = (int) config('avaroa.wallet.expiration_days', 30);
             $this->update([
-                'last_recharge_date' => now(),
+                'last_recharge_date'      => now(),
                 'balance_expiration_date' => now()->addDays($days),
-                'wallet_status' => 'active',
-                'expired_balance_amount' => null,
-                'expiration_reason' => null,
+                'wallet_status'           => 'active',
+                'expired_balance_amount'  => null,
+                'expiration_reason'       => null,
+                'is_blocked'              => false,
+                'blocked_reason'          => null,
+                'blocked_at'              => null,
             ]);
         }
 

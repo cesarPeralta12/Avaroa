@@ -53,12 +53,12 @@ $(document).ready(function() {
 
         if (isBlocked) {
             Swal.fire({
-                title: 'Unblock Wallet?',
-                text: 'This will allow the driver to use their wallet again.',
+                title: '¿Desbloquear Billetera?',
+                text: 'El conductor podrá usar su billetera nuevamente.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, Unblock',
-                cancelButtonText: 'Cancel'
+                confirmButtonText: 'Sí, desbloquear',
+                cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
                     toggleBlockStatus(id, '');
