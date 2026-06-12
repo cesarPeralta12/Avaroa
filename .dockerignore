@@ -41,8 +41,6 @@ public/storage
 storage/logs/*.log
 *.log
 
-# Docker files (don't nest)
-docker/
 
 # Documentation
 *.md
