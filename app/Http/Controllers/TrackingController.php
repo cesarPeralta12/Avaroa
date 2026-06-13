@@ -12,19 +12,32 @@ use Illuminate\View\View;
 
 class TrackingController extends Controller
 {
+    private const ACTIVE_STATUSES = ['assigned', 'accepted', 'driver_arrived', 'in_progress', 'picked_up'];
+
     /**
      * Página pública de rastreo.
      * Ruta: GET /track/{token}
      * Sin auth — cualquier persona con el link puede verlo.
      */
-    public function show(string $token): View|\Illuminate\Http\RedirectResponse
+    public function show(string $token): View
     {
         $trip = Trip::where('tracking_token', $token)
             ->with(['driver.user', 'driver.vehicles'])
             ->first();
 
         if (!$trip) {
-            return redirect('/')->with('error', 'Link de rastreo inválido o expirado.');
+            return view('tracking.ended', [
+                'reason' => 'invalid',
+                'trip'   => null,
+            ]);
+        }
+
+        // Si el viaje ya no está activo, mostrar pantalla de finalizado
+        if (!in_array($trip->status, self::ACTIVE_STATUSES)) {
+            return view('tracking.ended', [
+                'reason' => $trip->status,
+                'trip'   => $trip,
+            ]);
         }
 
         // Última ubicación conocida
@@ -88,6 +101,36 @@ class TrackingController extends Controller
         ));
 
         return response()->json(['ok' => true, 'ts' => now()->toISOString()]);
+    }
+
+    /**
+     * Devuelve la última ubicación conocida del conductor.
+     * Ruta: GET /track/{token}/ping  (pública, sin auth)
+     */
+    public function ping(string $token): JsonResponse
+    {
+        $trip = Trip::where('tracking_token', $token)->first();
+
+        if (!$trip) {
+            return response()->json(['error' => 'Token inválido'], 404);
+        }
+
+        $loc = TripLocation::where('tracking_token', $token)
+            ->latest('recorded_at')
+            ->first();
+
+        $isActive = in_array($trip->status, self::ACTIVE_STATUSES);
+
+        return response()->json([
+            'lat'     => $loc ? (float) $loc->lat     : null,
+            'lng'     => $loc ? (float) $loc->lng     : null,
+            'heading' => $loc ? (float) $loc->heading : null,
+            'speed'   => $loc ? (float) $loc->speed   : null,
+            'status'  => $trip->status,
+            'ts'      => $loc?->recorded_at?->toISOString(),
+            'active'  => $isActive,
+            'ended'   => !$isActive,
+        ]);
     }
 
     /**

@@ -33,6 +33,6 @@ class ServiceRate extends Model
 
     public function getIsPassengerServiceAttribute(): bool
     {
-        return in_array($this->service_type, ['taxi', 'mototaxi']);
+        return in_array($this->service_type, ['auto', 'minivan']);
     }
 }

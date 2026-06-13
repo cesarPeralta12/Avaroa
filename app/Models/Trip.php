@@ -97,7 +97,8 @@ class Trip extends Model
         if (is_array($svc) && array_key_exists('is_passenger', $svc)) {
             return (bool) $svc['is_passenger'];
         }
-        return in_array($key, ['taxi', 'mototaxi'], true);
+        // Tipos de vehículo que transportan pasajeros (sin POD ni firma)
+        return in_array($key, ['taxi', 'mototaxi', 'auto', 'minivan', 'moto'], true);
     }
 
     /**
@@ -166,8 +167,8 @@ class Trip extends Model
         if (is_array($svc) && array_key_exists('requires_proof_of_delivery', $svc)) {
             return (bool) $svc['requires_proof_of_delivery'];
         }
-        // Fallback conservador: si no sabemos qué servicio es, NO forzamos POD.
-        return !in_array($key, ['taxi', 'mototaxi'], true);
+        // Vehículos de pasajeros no requieren POD; delivery/carga/torito/bicicleta sí
+        return !in_array($key, ['taxi', 'mototaxi', 'auto', 'minivan', 'moto'], true);
     }
 
     public function getStatusColorAttribute(): string

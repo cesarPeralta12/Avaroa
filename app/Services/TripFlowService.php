@@ -23,8 +23,12 @@ class TripFlowService
         ];
 
         try {
+            // Buscar primero por vehicle_type (nuevo esquema), luego por service_type (legacy)
+            $vehicleType = $trip->vehicle_type ?? null;
             $serviceType = $trip->service_type ?? null;
-            $rate = $serviceType ? ServiceRate::forService($serviceType) : null;
+
+            $rate = ($vehicleType ? ServiceRate::forService($vehicleType) : null)
+                 ?? ($serviceType ? ServiceRate::forService($serviceType) : null);
 
             if (!$rate) return $defaults;
 

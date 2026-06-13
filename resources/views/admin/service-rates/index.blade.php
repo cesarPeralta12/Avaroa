@@ -195,10 +195,12 @@
         {{-- TARIFAS POR SERVICIO --}}
         @php
             $serviceConfig = [
-                'taxi'     => ['color' => '#f59e0b', 'bg' => '#fef3c7', 'icon' => 'fas fa-taxi',   'desc' => 'Servicio de taxi y transporte de pasajeros'],
-                'pickup'   => ['color' => '#0ea5e9', 'bg' => '#e0f2fe', 'icon' => 'fas fa-truck',  'desc' => 'Pickup y entregas de carga'],
-                'delivery' => ['color' => '#10b981', 'bg' => '#d1fae5', 'icon' => 'fas fa-box',    'desc' => 'Delivery de paquetes y pedidos'],
-                'moto'     => ['color' => '#8b5cf6', 'bg' => '#ede9fe', 'icon' => 'fas fa-motorcycle','desc' => 'Servicio en moto — rápido y económico'],
+                'moto'      => ['color' => '#8b5cf6', 'bg' => '#ede9fe', 'icon' => 'fas fa-motorcycle',  'desc' => 'Motocicleta — rápida y económica'],
+                'auto'      => ['color' => '#f59e0b', 'bg' => '#fef3c7', 'icon' => 'fas fa-car',         'desc' => 'Automóvil para pasajeros y paquetes pequeños'],
+                'minivan'   => ['color' => '#0ea5e9', 'bg' => '#e0f2fe', 'icon' => 'fas fa-van-shuttle', 'desc' => 'Minivan para grupos o carga mediana'],
+                'camion'    => ['color' => '#10b981', 'bg' => '#d1fae5', 'icon' => 'fas fa-truck',       'desc' => 'Camión para carga pesada o de gran volumen'],
+                'torito'    => ['color' => '#ef4444', 'bg' => '#fee2e2', 'icon' => 'fas fa-truck-pickup', 'desc' => 'Torito (triciclo) para carga pequeña'],
+                'bicicleta' => ['color' => '#64748b', 'bg' => '#f1f5f9', 'icon' => 'fas fa-bicycle',    'desc' => 'Bicicleta para entregas ligeras'],
             ];
         @endphp
 
@@ -269,8 +271,8 @@
                                 <strong>{{ number_format(max($rate->minimum_fare, $rate->price_per_minute * 10) * ($rates->first()?->commission_rate ?? 0.13), 2) }} Bs</strong>
                             </div>
 
-                            {{-- Recargo de pasajeros: SOLO taxi --}}
-                            @if($rate->service_type === 'taxi')
+                            {{-- Recargo de pasajeros: auto y minivan --}}
+                            @if($rate->is_passenger_service)
                             <hr class="divider-section">
                             <div class="surcharge-section">
                                 <h6><i class="fas fa-users me-1"></i>Recargo por Pasajeros Adicionales</h6>

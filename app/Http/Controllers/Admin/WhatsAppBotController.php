@@ -89,7 +89,8 @@ class WhatsAppBotController extends Controller
     }
 
     /**
-     * Enviar mensaje manual desde el admin al cliente
+     * Enviar mensaje manual desde el admin al cliente.
+     * Soporta JSON (AJAX desde el chat) y redirect normal.
      */
     public function sendMessage(Request $request, int $id)
     {
@@ -103,6 +104,9 @@ class WhatsAppBotController extends Controller
         $conversation = ConversationSession::with('customer')->findOrFail($id);
 
         if (!$conversation->customer?->whatsapp_number) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'error' => 'Sin número de WhatsApp.'], 422);
+            }
             return back()->with('error', 'El cliente no tiene número de WhatsApp registrado.');
         }
 
@@ -112,7 +116,7 @@ class WhatsAppBotController extends Controller
         );
 
         if ($sent) {
-            Message::create([
+            $msg = Message::create([
                 'conversation_id' => $conversation->id,
                 'trip_id'         => $conversation->trip_id,
                 'sender_type'     => 'admin',
@@ -122,10 +126,101 @@ class WhatsAppBotController extends Controller
                 'status'          => 'sent',
             ]);
 
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'msg'     => [
+                        'id'          => $msg->id,
+                        'content'     => $msg->content,
+                        'sender_type' => 'admin',
+                        'status'      => 'sent',
+                        'time'        => $msg->created_at->format('H:i'),
+                    ],
+                ]);
+            }
+
             return back()->with('success', '✅ Mensaje enviado por WhatsApp.');
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['success' => false, 'error' => 'No se pudo enviar el mensaje.'], 500);
+        }
         return back()->with('error', '❌ No se pudo enviar el mensaje. Verifica la configuración de la API.');
+    }
+
+    /**
+     * Devuelve mensajes nuevos desde un ID dado (polling en tiempo real).
+     * GET /admin/whatsapp/{id}/messages?since={lastId}
+     */
+    public function liveMessages(Request $request, int $id)
+    {
+        if (!Session::has('LoggedIn')) {
+            return response()->json(['error' => 'No autorizado'], 401);
+        }
+
+        $conv  = ConversationSession::findOrFail($id);
+        $since = (int) $request->get('since', 0);
+
+        $messages = Message::where('conversation_id', $id)
+            ->where('id', '>', $since)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn($m) => [
+                'id'          => $m->id,
+                'content'     => $m->content,
+                'sender_type' => $m->sender_type,
+                'status'      => $m->status,
+                'time'        => $m->created_at->format('H:i'),
+            ]);
+
+        return response()->json([
+            'messages'  => $messages,
+            'state'     => $conv->state,
+            'escalated' => $conv->escalated_to_human,
+            'last_id'   => Message::where('conversation_id', $id)->max('id') ?? 0,
+        ]);
+    }
+
+    /**
+     * Devuelve stats y lista de conversaciones para el index en tiempo real.
+     * GET /admin/whatsapp/live-stats
+     */
+    public function liveStats()
+    {
+        if (!Session::has('LoggedIn')) {
+            return response()->json(['error' => 'No autorizado'], 401);
+        }
+
+        $stats = [
+            'total'     => ConversationSession::count(),
+            'active'    => ConversationSession::whereNotIn('state', ['COMPLETED', 'CANCELLED'])->count(),
+            'today'     => ConversationSession::whereDate('created_at', today())->count(),
+            'escalated' => ConversationSession::where('escalated_to_human', true)->count(),
+        ];
+
+        $conversations = ConversationSession::with('customer')
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('created_at')
+            ->take(50)
+            ->get()
+            ->map(fn($c) => [
+                'id'        => $c->id,
+                'name'      => $c->customer?->name ?? 'Desconocido',
+                'phone'     => $c->customer?->whatsapp_number ?? $c->customer?->phone ?? '—',
+                'initial'   => strtoupper(substr($c->customer?->name ?? '?', 0, 1)),
+                'state'     => $c->state,
+                'escalated' => $c->escalated_to_human,
+                'trip_id'   => $c->trip_id,
+                'last_msg'  => $c->last_message_at?->diffForHumans() ?? $c->updated_at->diffForHumans(),
+                'started'   => $c->created_at->format('d/m H:i'),
+                'url'       => route('whatsapp.show', $c->id),
+                'delete_url'=> route('whatsapp.destroy', $c->id),
+            ]);
+
+        return response()->json([
+            'stats'         => $stats,
+            'conversations' => $conversations,
+        ]);
     }
 
     /**

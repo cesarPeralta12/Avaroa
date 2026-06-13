@@ -686,6 +686,19 @@ class DeliveryController extends Controller
             ], 422);
         }
 
+        // Idempotent: already completed → return success so the app doesn't show a false error
+        // (happens when network is slow and the driver retries or the app polls again)
+        if ($trip->status === 'completed') {
+            return response()->json([
+                'success'             => true,
+                'message'             => 'Trip already completed',
+                'trip'                => $trip,
+                'commission_deducted' => 0,
+                'wallet_balance'      => (float) optional(\App\Models\Wallet::where('driver_id', $driver->id)->first())->balance,
+                'driver_blocked'      => false,
+            ]);
+        }
+
         if (!in_array($trip->status, ['accepted', 'picked_up', 'in_progress', 'driver_arrived', 'arrived'])) {
             return response()->json([
                 'success' => false,

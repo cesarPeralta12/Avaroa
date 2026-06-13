@@ -154,6 +154,9 @@ Route::get('/error/{code}', function ($code) {
 Route::get('/track/{token}', [\App\Http\Controllers\TrackingController::class, 'show'])
     ->name('tracking.show');
 
+Route::get('/track/{token}/ping', [\App\Http\Controllers\TrackingController::class, 'ping'])
+    ->name('tracking.ping');
+
 Route::get('/verify-email/{id}', function ($id) {
 
     $user = User::findOrFail($id);
@@ -371,7 +374,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
 // WhatsApp Bot — conversaciones y mensajes
         Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
             Route::get('/',                      [WhatsAppBotController::class, 'index'])->name('index');
+            Route::get('/live-stats',            [WhatsAppBotController::class, 'liveStats'])->name('live-stats');
             Route::get('/{id}',                  [WhatsAppBotController::class, 'show'])->name('show');
+            Route::get('/{id}/messages',         [WhatsAppBotController::class, 'liveMessages'])->name('live-messages');
             Route::post('/{id}/send',            [WhatsAppBotController::class, 'sendMessage'])->name('send');
             Route::post('/{id}/toggle-escalate', [WhatsAppBotController::class, 'toggleEscalate'])->name('toggle-escalate');
             Route::delete('/{id}',               [WhatsAppBotController::class, 'destroy'])->name('destroy');

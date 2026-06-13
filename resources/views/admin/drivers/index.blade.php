@@ -89,14 +89,6 @@
                 <h5 class="card-title mb-0 text-light fw-bold">
                     <i class="fas fa-id-card text-primary me-2"></i>Directorio de Conductores
                 </h5>
-                <div class="d-flex gap-2 flex-wrap">
-                    <a href="{{ route('drivers.pending') }}" class="btn btn-warning btn-sm">
-                        <i class="fas fa-clock me-1"></i>Pendientes
-                        @if($stats['pending'] > 0)
-                            <span class="badge bg-danger ms-1">{{ $stats['pending'] }}</span>
-                        @endif
-                    </a>
-                </div>
             </div>
             <div class="card-body">
                 {{-- Filters --}}
