@@ -141,7 +141,7 @@ class EarningsController extends Controller
                     'amount' => $txn->amount,
                     'direction' => $txn->direction,
                     'description' => $isCommission
-                        ? 'Comisi��n Viaje #' . substr($txn->reference_id, -4)
+                        ? 'Comision Viaje #' . $txn->reference_id
                         : ($txn->type === 'topup' ? 'Recarga Aprobada' : 'Ajuste'),
                     'date' => $txn->created_at,
                     'isCommission' => $isCommission,

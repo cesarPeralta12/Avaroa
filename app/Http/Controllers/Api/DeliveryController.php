@@ -357,21 +357,16 @@ class DeliveryController extends Controller
 
         $trip->update($updateData);
 
-        // â”€â”€ Notifications & broadcasts AFTER the HTTP response is sent â”€â”€â”€â”€â”€â”€â”€â”€
-        // WhatsApp API calls can take 10â€“30 s. Broadcasts add another few seconds.
-        // app()->terminating() fires these AFTER $response->send() returns, so
-        // the app receives the JSON instantly and the UI updates without delay.
         $statusVal    = $request->status;
         $reasonVal    = $request->reason;
         $prevSnap     = $previousStatus;
         $tripSnapshot = $trip->fresh()->load('customer');
 
-        app()->terminating(function () use ($tripSnapshot, $statusVal, $reasonVal, $prevSnap, $driver) {
-            try {
-                $this->sendCustomerStatusNotification($tripSnapshot, $statusVal, $driver);
-            } catch (\Exception $e) {
-                Log::error('updateStatus WA failed: ' . $e->getMessage());
-            }
+        // WhatsApp notification → queued job (non-blocking, can take 10-30 s)
+        \App\Jobs\SendTripStatusNotification::dispatch($trip->id, $driver->id, $statusVal);
+
+        // Reverb broadcasts are local and fast (< 50 ms) → keep in terminating
+        app()->terminating(function () use ($tripSnapshot, $statusVal, $reasonVal, $prevSnap) {
             try {
                 if ($statusVal === 'cancelled') {
                     broadcast(new TripCancelled($tripSnapshot, 'driver', $reasonVal));
