@@ -633,7 +633,7 @@ class DeliveryController extends Controller
             }
         });
 
-        return response()->json([
+        $response = [
             'success'             => true,
             'message'             => 'Delivery completed successfully',
             'trip'                => $completedTrip,
@@ -647,7 +647,14 @@ class DeliveryController extends Controller
             'commission_deducted' => $commissionAmount,
             'wallet_balance'      => $finalWalletBalance,
             'driver_blocked'      => $finalWalletBalance <= 0,
-        ]);
+        ];
+
+        if (!Auth::user()->is_active) {
+            $response['account_disabled'] = true;
+            $response['account_disabled_message'] = 'Tu cuenta ha sido deshabilitada. Contacta con soporte.';
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -774,14 +781,23 @@ class DeliveryController extends Controller
             }
         });
 
-        return response()->json([
+        $response = [
             'success'            => true,
             'message'            => 'Trip completed successfully',
             'trip'               => $completedTrip,
             'commission_deducted' => $commissionAmount,
             'wallet_balance'     => $finalWalletBalance,
             'driver_blocked'     => $finalWalletBalance <= 0,
-        ]);
+        ];
+
+        // If the account was disabled while the driver was finishing this trip,
+        // include the flag so the app kicks them out immediately after completion.
+        if (!Auth::user()->is_active) {
+            $response['account_disabled'] = true;
+            $response['account_disabled_message'] = 'Tu cuenta ha sido deshabilitada. Contacta con soporte.';
+        }
+
+        return response()->json($response);
     }
 
     /**

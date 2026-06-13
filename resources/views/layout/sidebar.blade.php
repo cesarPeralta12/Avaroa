@@ -2,6 +2,8 @@
     $isSuperAdmin  = $user_session->is_super_admin;
     $currentRole   = $isSuperAdmin ? 'admin' : ($user_session->role ?? 'customer');
     $isAsistente   = $currentRole === 'asistente';
+    // Helper: can current user see a panel?
+    $canPanel = fn(string $p) => $user_session->canAccessPanel($p);
 @endphp
 @if ($isSuperAdmin || $isAsistente)
     <div class="sidebar-wrapper">
@@ -112,7 +114,7 @@
                                 <span>File manager</span>
                             </a>
                         </li> --}}
-                        @if(!$isAsistente)
+                        @if($canPanel('clientes'))
                         <li class="sidebar-list {{ Request::is('users') ? 'active' : '' }}"><i
                                 class="fa fa-thumb-tack"></i>
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('users') }}">
@@ -122,12 +124,14 @@
                         </li>
                         @endif
                         <!-- Drivers Manage -->
+                        @if($canPanel('conductores'))
                         <li class="sidebar-list {{ Request::routeIs('admin.drivers.*') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('drivers.index') }}">
                                 <i class="fas fa-users-cog text-light"></i>&nbsp;&nbsp;
                                 <span> Conductores</span>
                             </a>
                         </li>
+                        @endif
 
                         <!-- Vehicles Manage -->
                         <!--<li class="sidebar-list {{ Request::routeIs('admin.vehicles.*') ? 'active' : '' }}">-->
@@ -190,14 +194,14 @@
 
                         <!--    </a>-->
                         <!--</li>-->
-                        @if(!$isAsistente)
+                        @if($canPanel('pod'))
                         <li class="sidebar-list {{ Request::is('admin/proof-of-delivery*') ? 'active' : '' }}">
-    <i class="fa fa-thumb-tack"></i>
-    <a class="sidebar-link sidebar-title link-nav" href="{{ url('admin/proof-of-delivery') }}">
-        <i class="fas fa-file-signature text-light"></i>
-        <span>Pruebas de Entrega</span>
-    </a>
-</li>
+                            <i class="fa fa-thumb-tack"></i>
+                            <a class="sidebar-link sidebar-title link-nav" href="{{ url('admin/proof-of-delivery') }}">
+                                <i class="fas fa-file-signature text-light"></i>
+                                <span>Pruebas de Entrega</span>
+                            </a>
+                        </li>
                         @endif
                         <!--<li class="sidebar-list {{ Request::is('qrcode') ? 'active' : '' }}"><i-->
                         <!--        class="fa fa-thumb-tack"></i>-->
@@ -235,15 +239,17 @@
                             </a>
                         </li> --}}
                         <!-- Trips (main list) -->
+                        @if($canPanel('viajes'))
                         <li class="sidebar-list {{ Request::routeIs('admin.trips.index') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('trips.index') }}">
                                 <i class="fas fa-receipt text-light"></i>&nbsp;&nbsp;&nbsp;
                                 <span>Viajes</span>
                             </a>
                         </li>
+                        @endif
 
-                        <!-- WhatsApp Bot (controllable via WHATSAPP_PANEL_ENABLED env var) -->
-                        @if(!$isAsistente && config('services.whatsapp_panel.enabled', true))
+                        <!-- WhatsApp Bot -->
+                        @if($canPanel('whatsapp') && config('services.whatsapp_panel.enabled', true))
                         <li class="sidebar-list {{ Request::routeIs('whatsapp.*') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title link-nav" href="{{ route('whatsapp.index') }}">
                                 <i class="fab fa-whatsapp" style="color:#25d366;"></i>&nbsp;&nbsp;&nbsp;
@@ -338,6 +344,7 @@
                         @endif
 
                         {{-- Wallet Management --}}
+                        @if($canPanel('billeteras'))
                         <li
                             class="sidebar-list {{ Request::routeIs('wallets.*', 'topup-requests.*', 'wallet-transactions.*') ? 'active' : '' }}">
                             <a class="sidebar-link sidebar-title" href="javascript:void(0)">
@@ -375,6 +382,7 @@
                                 </li>
                             </ul>
                         </li>
+                        @endif
 
                         <!--<li class="sidebar-list {{ Request::is('admin/language') ? 'active' : '' }}"><i-->
                         <!--        class="fa fa-thumb-tack"></i>-->

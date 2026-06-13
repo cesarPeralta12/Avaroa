@@ -346,6 +346,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
         Route::get('/assistants', [AssistantsController::class, 'index'])->name('admin.assistants.index');
         Route::post('/assistants', [AssistantsController::class, 'store'])->name('admin.assistants.store');
         Route::delete('/assistants/{user}', [AssistantsController::class, 'destroy'])->name('admin.assistants.destroy');
+        Route::post('/assistants/{user}/permissions', [AssistantsController::class, 'updatePermissions'])->name('admin.assistants.permissions');
 
         // Audit Logs (read-only mostly)
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

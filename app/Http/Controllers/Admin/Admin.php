@@ -649,29 +649,31 @@ class Admin extends Controller
 
     public function update_password(Request $request)
     {
-
-
         $request->validate([
-            'old_password' => 'required',
-            'new_password' => 'required',
-            'confirm_password' => ['same:new_password']
+            'old_password'     => 'required',
+            'new_password'     => 'required|min:6',
+            'confirm_password' => 'required|same:new_password',
+        ], [
+            'old_password.required'     => 'La contraseña actual es obligatoria.',
+            'new_password.required'     => 'La nueva contraseña es obligatoria.',
+            'new_password.min'          => 'La nueva contraseña debe tener al menos 6 caracteres.',
+            'confirm_password.required' => 'Debes confirmar la nueva contraseña.',
+            'confirm_password.same'     => 'Las contraseñas nuevas no coinciden.',
         ]);
 
+        $user = User::find(Session::get('LoggedIn'));
 
-        $data = User::find(Session::get('LoggedIn'));
-        // $data = User::where('id', '=', Session::get('LoggedIn'))->first();
-        if (!FacadesHash::check($request->old_password, $data->password)) {
-            return back()->with("fail", "Old Password Doesn't match!");
+        if (!FacadesHash::check($request->old_password, $user->password)) {
+            return back()->with('fail', 'La contraseña actual es incorrecta.');
         }
-        if (FacadesHash::check($request->new_password, $data->password)) {
-            return back()->with("fail", "Please enter a password which is not similar then current password!!");
-        }
-        #Update the new Password
-        $data = User::where('id', '=', $data->id)->update([
-            'password' => FacadesHash::make($request->new_password)
 
-        ]);
-        return redirect('admin/dashboard')->with('success', 'Successfully Updated');
+        if (FacadesHash::check($request->new_password, $user->password)) {
+            return back()->with('fail', 'La nueva contraseña no puede ser igual a la actual.');
+        }
+
+        $user->update(['password' => FacadesHash::make($request->new_password)]);
+
+        return back()->with('success', 'Contraseña actualizada correctamente.');
     }
 
 

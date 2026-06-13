@@ -17,29 +17,33 @@ class CheckSessionExpiration
      */
     public function handle(Request $request, Closure $next)
     {
-        // Get the session lifetime from the environment variable (in minutes)
-        $sessionLifetime = env('SESSION_LIFETIME', 120);  // Default to 120 minutes if not set in .env
-
-        // Check if the session has a 'LoggedIn' key and the timestamp of the session
-        if ($request->session()->has('LoggedIn')) {
-            $sessionTimestamp = $request->session()->get('LoggedInTimestamp');
-
-            // If the session timestamp does not exist, set it for the first time
-            if (!$sessionTimestamp) {
-                $request->session()->put('LoggedInTimestamp', now());
-            }
-
-            // Calculate the session duration
-            $sessionDuration = now()->diffInMinutes($sessionTimestamp);
-
-            // If the session duration exceeds the defined lifetime, redirect to unlock page
-            if ($sessionDuration > $sessionLifetime) {
-                // Optionally, you can flash a message like 'Session expired' to the session
-                return redirect()->route('unlock')->with('fail', 'Session expired. Please log in again.');
-            }
+        if (!$request->session()->has('LoggedIn')) {
+            return $next($request);
         }
 
-        // Continue processing the request if the session is valid
+        // Inactivity timeout in minutes (activity-based, not total-session-based)
+        $sessionLifetime = (int) env('SESSION_LIFETIME', 120);
+
+        $lastActivity = $request->session()->get('LoggedInTimestamp');
+
+        if (!$lastActivity) {
+            // First request after login — stamp it
+            $request->session()->put('LoggedInTimestamp', now());
+            return $next($request);
+        }
+
+        $inactiveMinutes = now()->diffInMinutes($lastActivity);
+
+        if ($inactiveMinutes > $sessionLifetime) {
+            // Clear the session so the redirect doesn't loop back here
+            $request->session()->forget(['LoggedIn', 'LoggedInTimestamp']);
+            return redirect('admin/login')
+                ->with('fail', 'Tu sesión expiró por inactividad. Por favor inicia sesión de nuevo.');
+        }
+
+        // Refresh activity timestamp on every valid request
+        $request->session()->put('LoggedInTimestamp', now());
+
         return $next($request);
     }
 }

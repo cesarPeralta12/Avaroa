@@ -115,12 +115,24 @@
                                     <tr>
                                         <th>Asistente</th>
                                         <th>Teléfono</th>
+                                        <th>Accesos</th>
                                         <th>Creado</th>
-                                        <th class="text-end">Acción</th>
+                                        <th class="text-end">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($assistants as $assistant)
+                                    @php
+                                        $perms = $assistant->panel_permissions ?? \App\Models\User::DEFAULT_ASSISTANT_PANELS;
+                                        $panelLabels = [
+                                            'conductores' => ['label' => 'Conductores',  'icon' => 'fas fa-users-cog'],
+                                            'viajes'      => ['label' => 'Viajes',        'icon' => 'fas fa-receipt'],
+                                            'billeteras'  => ['label' => 'Billeteras',    'icon' => 'fas fa-wallet'],
+                                            'clientes'    => ['label' => 'Clientes',      'icon' => 'fas fa-users'],
+                                            'pod'         => ['label' => 'Pruebas Entrega','icon' => 'fas fa-file-signature'],
+                                            'whatsapp'    => ['label' => 'Bot WhatsApp',  'icon' => 'fab fa-whatsapp'],
+                                        ];
+                                    @endphp
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
@@ -137,19 +149,38 @@
                                         <td class="text-muted" style="font-size:13px">
                                             {{ $assistant->phone ?? '—' }}
                                         </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach($panelLabels as $key => $info)
+                                                    <span class="badge {{ ($perms[$key] ?? false) ? 'bg-success' : 'bg-secondary' }}"
+                                                          style="font-size:10px;opacity:{{ ($perms[$key] ?? false) ? '1' : '0.4' }}">
+                                                        <i class="{{ $info['icon'] }} me-1"></i>{{ $info['label'] }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        </td>
                                         <td class="text-muted" style="font-size:12px">
                                             {{ $assistant->created_at->format('d/m/Y') }}
                                         </td>
                                         <td class="text-end">
-                                            <form action="{{ route('admin.assistants.destroy', $assistant) }}"
-                                                method="POST"
-                                                onsubmit="return confirm('¿Eliminar al asistente {{ addslashes($assistant->name) }}?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                    <i class="fas fa-trash"></i>
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                <button class="btn btn-sm btn-outline-primary btn-permisos"
+                                                        data-id="{{ $assistant->id }}"
+                                                        data-name="{{ $assistant->name }}"
+                                                        data-perms="{{ json_encode($perms) }}"
+                                                        data-url="{{ route('admin.assistants.permissions', $assistant) }}">
+                                                    <i class="fas fa-shield-alt"></i>
                                                 </button>
-                                            </form>
+                                                <form action="{{ route('admin.assistants.destroy', $assistant) }}"
+                                                    method="POST"
+                                                    onsubmit="return confirm('¿Eliminar al asistente {{ addslashes($assistant->name) }}?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -164,4 +195,91 @@
         </div>
     </div>
 </div>
+
+{{-- Modal Permisos --}}
+<div class="modal fade" id="permisosModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Permisos de <span id="modal-name"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                    $panelDefs = [
+                        'conductores' => ['label' => 'Conductores',     'icon' => 'fas fa-users-cog',       'color' => '#6366f1'],
+                        'viajes'      => ['label' => 'Viajes',           'icon' => 'fas fa-receipt',         'color' => '#0ea5e9'],
+                        'billeteras'  => ['label' => 'Billeteras',       'icon' => 'fas fa-wallet',          'color' => '#10b981'],
+                        'clientes'    => ['label' => 'Clientes',         'icon' => 'fas fa-users',           'color' => '#f59e0b'],
+                        'pod'         => ['label' => 'Pruebas Entrega',  'icon' => 'fas fa-file-signature',  'color' => '#8b5cf6'],
+                        'whatsapp'    => ['label' => 'Bot WhatsApp',     'icon' => 'fab fa-whatsapp',        'color' => '#25d366'],
+                    ];
+                @endphp
+                <div class="d-flex flex-column gap-2" id="permisos-list">
+                    @foreach($panelDefs as $key => $def)
+                    <div class="d-flex align-items-center justify-content-between p-2 rounded"
+                         style="border:1px solid #e5e7eb;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="{{ $def['icon'] }}" style="color:{{ $def['color'] }};width:18px;text-align:center"></i>
+                            <span style="font-size:13px">{{ $def['label'] }}</span>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input perm-toggle" type="checkbox"
+                                   data-panel="{{ $key }}" role="switch"
+                                   style="cursor:pointer">
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="guardar-permisos">
+                    <i class="fas fa-save me-1"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+$(document).ready(function () {
+    let currentUrl = '';
+
+    $(document).on('click', '.btn-permisos', function () {
+        const name  = $(this).data('name');
+        const perms = $(this).data('perms');
+        currentUrl  = $(this).data('url');
+
+        $('#modal-name').text(name);
+        $('.perm-toggle').each(function () {
+            const panel = $(this).data('panel');
+            $(this).prop('checked', perms[panel] === true || perms[panel] === 1);
+        });
+        $('#permisosModal').modal('show');
+    });
+
+    $('#guardar-permisos').on('click', function () {
+        const panels = {};
+        $('.perm-toggle').each(function () {
+            panels[$(this).data('panel')] = $(this).is(':checked') ? 1 : 0;
+        });
+
+        $.post(currentUrl, {
+            _token: "{{ csrf_token() }}",
+            panels: panels
+        }).done(function (r) {
+            if (r.success) {
+                $('#permisosModal').modal('hide');
+                location.reload();
+            }
+        }).fail(function () {
+            alert('Error al guardar permisos.');
+        });
+    });
+});
+</script>
+@endpush
+
 @endsection

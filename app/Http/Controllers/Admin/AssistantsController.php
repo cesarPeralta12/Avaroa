@@ -87,6 +87,26 @@ class AssistantsController extends Controller
             ->with('success', 'Asistente creado correctamente.');
     }
 
+    public function updatePermissions(Request $request, User $user)
+    {
+        $this->checkSession();
+
+        if ($user->is_super_admin || $user->role !== 'asistente') {
+            return response()->json(['success' => false, 'message' => 'No permitido.'], 403);
+        }
+
+        $allowedPanels = ['conductores', 'viajes', 'billeteras', 'clientes', 'pod', 'whatsapp'];
+
+        $permissions = [];
+        foreach ($allowedPanels as $panel) {
+            $permissions[$panel] = (bool) $request->input("panels.$panel", false);
+        }
+
+        $user->update(['panel_permissions' => $permissions]);
+
+        return response()->json(['success' => true, 'message' => 'Permisos actualizados.']);
+    }
+
     public function destroy(User $user)
     {
         $this->checkSession();

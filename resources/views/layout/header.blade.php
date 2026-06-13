@@ -93,13 +93,17 @@
                 <li class="profile-nav onhover-dropdown">
                     <div class="account-user"><i data-feather="user"></i></div>
                     <ul class="profile-dropdown onhover-show-div">
-                        <li><a href="{{ route('edit_profile') }}"><i data-feather="user"></i><span>Account</span></a>
+                        <li>
+                            <a href="{{ route('edit_profile') }}">
+                                <i data-feather="user"></i><span>Mi perfil</span>
+                            </a>
                         </li>
-                        <li><a href="#"><i data-feather="mail"></i><span>Inbox</span></a>
+                        <li>
+                            <a href="{{ route('change_password') }}">
+                                <i data-feather="lock"></i><span>Cambiar contraseña</span>
+                            </a>
                         </li>
-                        <li><a href="{{ route('settings.general_setting') }}"><i
-                                    data-feather="settings"></i><span>Settings</span></a></li>
-                        <li><a href="{{ route('logout') }}"><i data-feather="log-in"> </i><span>Logout</span></a>
+                        <li><a href="{{ route('logout') }}"><i data-feather="log-out"></i><span>Cerrar sesión</span></a>
                         </li>
                     </ul>
                 </li>

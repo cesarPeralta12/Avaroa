@@ -56,6 +56,7 @@ class User extends Authenticatable
         'is_super_admin',
         'role',
         'permissions',
+        'panel_permissions',
 
         'whatsapp_number',
         'about',
@@ -104,9 +105,27 @@ class User extends Authenticatable
         'is_online'         => 'boolean',
         'is_affiliate'      => 'boolean',
         'is_system'         => 'boolean',
-        'is_super_admin'    => 'boolean',
-        'is_subscribed'     => 'boolean',
+        'is_super_admin'     => 'boolean',
+        'is_subscribed'      => 'boolean',
+        'panel_permissions'  => 'array',
     ];
+
+    // Default panel access for assistants when no explicit permissions are set
+    public const DEFAULT_ASSISTANT_PANELS = [
+        'conductores' => true,
+        'viajes'      => true,
+        'billeteras'  => true,
+        'clientes'    => false,
+        'pod'         => false,
+        'whatsapp'    => false,
+    ];
+
+    public function canAccessPanel(string $panel): bool
+    {
+        if ($this->is_super_admin) return true;
+        $perms = $this->panel_permissions ?? self::DEFAULT_ASSISTANT_PANELS;
+        return (bool) ($perms[$panel] ?? false);
+    }
 
    public function trips()
     {
