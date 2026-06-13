@@ -752,9 +752,9 @@
     const echo = new Echo({
         broadcaster:       'reverb',
         key:               '{{ config('broadcasting.connections.reverb.key') }}',
-        wsHost:            '{{ config('broadcasting.connections.reverb.options.host') ?? parse_url(config('app.url'), PHP_URL_HOST) }}',
-        wsPort:            {{ config('broadcasting.connections.reverb.options.port') ?? 443 }},
-        wssPort:           {{ config('broadcasting.connections.reverb.options.port') ?? 443 }},
+        wsHost:            '{{ parse_url(config('app.url'), PHP_URL_HOST) }}',
+        wsPort:            443,
+        wssPort:           443,
         forceTLS:          true,
         enabledTransports: ['ws', 'wss'],
         disableStats:      true,
